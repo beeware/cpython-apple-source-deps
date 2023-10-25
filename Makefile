@@ -24,11 +24,6 @@
 # - libFFI-iOS      - build libFFI for iOS
 # - libFFI-tvOS     - build libFFI for tvOS
 # - libFFI-watchOS  - build libFFI for watchOS
-# - Python          - build Python for all platforms
-# - Python-macOS    - build Python for macOS
-# - Python-iOS      - build Python for iOS
-# - Python-tvOS     - build Python for tvOS
-# - Python-watchOS  - build Python for watchOS
 
 # Current directory
 PROJECT_DIR=$(shell pwd)
@@ -51,11 +46,10 @@ XZ_VERSION=5.4.4
 # Preference is to use OpenSSL 3; however, Cryptography 3.4.8 (and
 # probably some other packages as well) only works with 1.1.1, so
 # we need to preserve the ability to build the older OpenSSL (for now...)
-OPENSSL_VERSION=3.1.2
+OPENSSL_VERSION=3.0.12
 # OPENSSL_VERSION_NUMBER=1.1.1
 # OPENSSL_REVISION=v
 # OPENSSL_VERSION=$(OPENSSL_VERSION_NUMBER)$(OPENSSL_REVISION)
-
 
 CURL_FLAGS=--disable --fail --location --create-dirs --progress-bar
 
@@ -213,8 +207,6 @@ $$(BZIP2_DIST-$(target)): $$(BZIP2_LIB-$(target))
 
 	cd $$(BZIP2_INSTALL-$(target)) && tar zcvf $(PROJECT_DIR)/$$(BZIP2_DIST-$(target)) lib include
 
-BZip2-$(target): $$(BZIP2_DIST-$(target))
-
 ###########################################################################
 # Target: XZ (LZMA)
 ###########################################################################
@@ -261,7 +253,96 @@ $$(XZ_DIST-$(target)): $$(XZ_LIB-$(target))
 
 	cd $$(XZ_INSTALL-$(target)) && tar zcvf $(PROJECT_DIR)/$$(XZ_DIST-$(target)) lib include
 
+###########################################################################
+# Target: OpenSSL
+###########################################################################
+
+OPENSSL_SRCDIR-$(target)=build/$(os)/$(target)/openssl-$(OPENSSL_VERSION)
+OPENSSL_INSTALL-$(target)=$(PROJECT_DIR)/install/$(os)/$(target)/openssl-$(OPENSSL_VERSION)
+OPENSSL_SSL_LIB-$(target)=$$(OPENSSL_INSTALL-$(target))/lib/libssl.a
+OPENSSL_DIST-$(target)=dist/openssl-$(OPENSSL_VERSION)-$(BUILD_NUMBER)-$(target).tar.gz
+
+$$(OPENSSL_SRCDIR-$(target))/Configure: downloads/openssl-$(OPENSSL_VERSION).tar.gz
+	@echo ">>> Unpack and configure OpenSSL sources for $(target)"
+	mkdir -p $$(OPENSSL_SRCDIR-$(target))
+	tar zxf $$< --strip-components 1 -C $$(OPENSSL_SRCDIR-$(target))
+
+ifeq ($(OPENSSL_VERSION_NUMBER),1.1.1)
+	sed -ie 's/define HAVE_FORK 1/define HAVE_FORK 0/' $$(OPENSSL_SRCDIR-$(target))/apps/speed.c
+	sed -ie 's/define HAVE_FORK 1/define HAVE_FORK 0/' $$(OPENSSL_SRCDIR-$(target))/apps/ocsp.c
+else
+	sed -ie 's/define HAVE_FORK 1/define HAVE_FORK 0/' $$(OPENSSL_SRCDIR-$(target))/apps/include/http_server.h
+	sed -ie 's/define HAVE_FORK 1/define HAVE_FORK 0/' $$(OPENSSL_SRCDIR-$(target))/apps/speed.c
+endif
+
+	# Touch the Configure script to ensure that Make identifies it as up to date.
+	touch $$(OPENSSL_SRCDIR-$(target))/Configure
+
+
+$$(OPENSSL_SRCDIR-$(target))/is_configured: $$(OPENSSL_SRCDIR-$(target))/Configure
+	# Configure the OpenSSL build
+ifeq ($(os),macOS)
+	cd $$(OPENSSL_SRCDIR-$(target)) && \
+		PATH="$(PROJECT_DIR)/install/$(os)/bin:$(PATH)" \
+		CC="$$(CC-$(target)) $$(CFLAGS-$(target))" \
+		./Configure darwin64-$$(ARCH-$(target))-cc no-tests \
+			--prefix="$$(OPENSSL_INSTALL-$(target))" \
+			--openssldir=/etc/ssl \
+			2>&1 | tee -a ../openssl-$(OPENSSL_VERSION).config.log
+else
+	cd $$(OPENSSL_SRCDIR-$(target)) && \
+		PATH="$(PROJECT_DIR)/install/$(os)/bin:$(PATH)" \
+		CC="$$(CC-$(target)) $$(CFLAGS-$(target))" \
+		CROSS_TOP="$$(dir $$(SDK_ROOT-$(target))).." \
+		CROSS_SDK="$$(notdir $$(SDK_ROOT-$(target)))" \
+		./Configure iphoneos-cross no-asm no-tests \
+			--prefix="$$(OPENSSL_INSTALL-$(target))" \
+			--openssldir=/etc/ssl \
+			2>&1 | tee -a ../openssl-$(OPENSSL_VERSION).config.log
+endif
+	# The OpenSSL Makefile is... interesting. Invoking `make all` or `make
+	# install` *modifies the Makefile*. Therefore, we can't use the Makefile as
+	# a build dependency, because building/installing dirties the target that
+	# was used as a dependency. To compensate, create a dummy file as a marker
+	# for whether OpenSSL has been configured, and use *that* as a reference.
+	date > $$(OPENSSL_SRCDIR-$(target))/is_configured
+
+$$(OPENSSL_SRCDIR-$(target))/libssl.a: $$(OPENSSL_SRCDIR-$(target))/is_configured
+	@echo ">>> Build OpenSSL for $(target)"
+	# OpenSSL's `all` target modifies the Makefile;
+	# use the raw targets that make up all and it's dependencies
+	cd $$(OPENSSL_SRCDIR-$(target)) && \
+		PATH="$(PROJECT_DIR)/install/$(os)/bin:$(PATH)" \
+		CC="$$(CC-$(target)) $$(CFLAGS-$(target))" \
+		CROSS_TOP="$$(dir $$(SDK_ROOT-$(target))).." \
+		CROSS_SDK="$$(notdir $$(SDK_ROOT-$(target)))" \
+		make build_sw \
+			2>&1 | tee -a ../openssl-$(OPENSSL_VERSION).build.log
+
+$$(OPENSSL_SSL_LIB-$(target)): $$(OPENSSL_SRCDIR-$(target))/libssl.a
+	@echo ">>> Install OpenSSL for $(target)"
+	# Install just the software (not the docs)
+	cd $$(OPENSSL_SRCDIR-$(target)) && \
+		PATH="$(PROJECT_DIR)/install/$(os)/bin:$(PATH)" \
+		CC="$$(CC-$(target)) $$(CFLAGS-$(target))" \
+		CROSS_TOP="$$(dir $$(SDK_ROOT-$(target))).." \
+		CROSS_SDK="$$(notdir $$(SDK_ROOT-$(target)))" \
+		make install_sw \
+			2>&1 | tee -a ../openssl-$(OPENSSL_VERSION).install.log
+
+$$(OPENSSL_DIST-$(target)): $$(OPENSSL_SSL_LIB-$(target))
+	@echo ">>> Build OpenSSL distribution for $(target)"
+	mkdir -p dist
+
+	cd $$(OPENSSL_INSTALL-$(target)) && tar zcvf $(PROJECT_DIR)/$$(OPENSSL_DIST-$(target)) lib include
+
+###########################################################################
+# Target: Macro Expansions
+###########################################################################
+
+BZip2-$(target): $$(BZIP2_DIST-$(target))
 XZ-$(target): $$(XZ_DIST-$(target))
+OpenSSL-$(target): $$(OPENSSL_DIST-$(target))
 
 ###########################################################################
 # Target: Debug
@@ -284,6 +365,10 @@ vars-$(target):
 	@echo "XZ_INSTALL-$(target): $$(XZ_INSTALL-$(target))"
 	@echo "XZ_LIB-$(target): $$(XZ_LIB-$(target))"
 	@echo "XZ_DIST-$(target): $$(XZ_DIST-$(target))"
+	@echo "OPENSSL_SRCDIR-$(target): $$(OPENSSL_SRCDIR-$(target))"
+	@echo "OPENSSL_INSTALL-$(target): $$(OPENSSL_INSTALL-$(target))"
+	@echo "OPENSSL_SSL_LIB-$(target): $$(OPENSSL_SSL_LIB-$(target))"
+	@echo "OPENSSL_DIST-$(target): $$(OPENSSL_DIST-$(target))"
 	@echo
 
 endef # build-target
@@ -317,6 +402,7 @@ $$(foreach target,$$(SDK_TARGETS-$(sdk)),$$(eval $$(call build-target,$$(target)
 
 BZip2-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),BZip2-$$(target))
 XZ-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),XZ-$$(target))
+OpenSSL-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),OpenSSL-$$(target))
 
 ###########################################################################
 # SDK: Debug
@@ -352,8 +438,7 @@ $$(foreach sdk,$$(SDKS-$(os)),$$(eval $$(call build-sdk,$$(sdk),$(os))))
 
 BZip2-$(os): $$(foreach sdk,$$(SDKS-$(os)),BZip2-$$(sdk))
 XZ-$(os): $$(foreach sdk,$$(SDKS-$(os)),XZ-$$(sdk))
-
-$(os): BZip2-$(os) XZ-$(os)
+OpenSSL-$(os): $$(foreach sdk,$$(SDKS-$(os)),OpenSSL-$$(sdk))
 
 clean-BZip2-$(os):
 	@echo ">>> Clean BZip2 build products on $(os)"
@@ -373,6 +458,17 @@ clean-XZ-$(os):
 		install/$(os)/*/xz-$(XZ_VERSION).*.log \
 		dist/xz-$(XZ_VERSION)-*
 
+clean-OpenSSL-$(os):
+	@echo ">>> Clean OpenSSL build products on $(os)"
+	rm -rf \
+		build/$(os)/*/xz-$(OPENSSL_VERSION) \
+		build/$(os)/*/xz-$(OPENSSL_VERSION).*.log \
+		install/$(os)/*/xz-$(OPENSSL_VERSION) \
+		install/$(os)/*/xz-$(OPENSSL_VERSION).*.log \
+		dist/xz-$(OPENSSL_VERSION)-*
+
+$(os): BZip2-$(os) XZ-$(os) OpenSSL-$(os)
+
 ###########################################################################
 # Build: Debug
 ###########################################################################
@@ -390,6 +486,11 @@ vars: $(foreach os,$(OS_LIST),vars-$(os))
 # Expand the targets for each product
 BZip2: $(foreach os,$(OS_LIST),BZip2-$(os))
 XZ: $(foreach os,$(OS_LIST),XZ-$(os))
+OpenSSL: $(foreach os,$(OS_LIST),OpenSSL-$(os))
+
+clean-BZip2: $(foreach os,$(OS_LIST),clean-BZip2-$(os))
+clean-XZ: $(foreach os,$(OS_LIST),clean-XZ-$(os))
+clean-OpenSSL: $(foreach os,$(OS_LIST),clean-OpenSSL-$(os))
 
 # Expand the build macro for every OS
 $(foreach os,$(OS_LIST),$(eval $(call build,$(os))))
