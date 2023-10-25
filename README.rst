@@ -10,12 +10,10 @@ CPython build requires. This includes:
 * OpenSSL 1.1
 * OpenSSL 3.0
 
-It produces binaries for iOS, tvOS and watchOS.
-
-The repository works by downloading, patching, and building a fat binary of a
-library. The compiled library is then packed into a tarball for distribution.
-The tarballs each contain an include and lib folder for the platform they've
-been compiled for.
+The repository works by downloading, patching, and building binaries for each
+SDK target and architecture that is requried. The compiled library is packed
+into a tarball for distribution in "installed" form - that is, the contents of
+the ``include`` and ``lib`` folders are included.
 
 The binaries support arm64 for iOS and appleTV devices, and arm64_32 for
 watchOS. They also supports device simulators on both x86_64 and M1 hardware.
@@ -48,7 +46,8 @@ need to compile them yourself.
 However, if you *do* need to compile your own version for some reason:
 
 * Clone this repository
-* Create a Python 3 virtual environment
+* Create a Python 3 virtual environment. Any supported Python 3 release should
+  be sufficient; some tools require python3 as part of their build.
 * In the root directory, run:
   - ``make`` (or ``make all``) to build everything.
   - ``make iOS`` to build everything for iOS.

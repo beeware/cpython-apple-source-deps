@@ -47,9 +47,11 @@ XZ_VERSION=5.4.4
 # probably some other packages as well) only works with 1.1.1, so
 # we need to preserve the ability to build the older OpenSSL (for now...)
 OPENSSL_VERSION=3.0.12
-# OPENSSL_VERSION_NUMBER=1.1.1
-# OPENSSL_REVISION=v
-# OPENSSL_VERSION=$(OPENSSL_VERSION_NUMBER)$(OPENSSL_REVISION)
+# OPENSSL_VERSION=1.1.1w
+# The Series is the first 2 digits of the version number. (e.g., 1.1.1w -> 1.1)
+OPENSSL_SERIES=$(shell echo $(OPENSSL_VERSION) | grep -Eo "\d+\.\d+")
+
+LIBFFI_VERSION=3.4.4
 
 CURL_FLAGS=--disable --fail --location --create-dirs --progress-bar
 
@@ -267,10 +269,12 @@ $$(OPENSSL_SRCDIR-$(target))/Configure: downloads/openssl-$(OPENSSL_VERSION).tar
 	mkdir -p $$(OPENSSL_SRCDIR-$(target))
 	tar zxf $$< --strip-components 1 -C $$(OPENSSL_SRCDIR-$(target))
 
-ifeq ($(OPENSSL_VERSION_NUMBER),1.1.1)
+ifeq ($(OPENSSL_SERIES),1.1)
+	# Patch OpenSSL 1.1.X sources
 	sed -ie 's/define HAVE_FORK 1/define HAVE_FORK 0/' $$(OPENSSL_SRCDIR-$(target))/apps/speed.c
 	sed -ie 's/define HAVE_FORK 1/define HAVE_FORK 0/' $$(OPENSSL_SRCDIR-$(target))/apps/ocsp.c
 else
+	# Patch OpenSSL 3.X.X sources
 	sed -ie 's/define HAVE_FORK 1/define HAVE_FORK 0/' $$(OPENSSL_SRCDIR-$(target))/apps/include/http_server.h
 	sed -ie 's/define HAVE_FORK 1/define HAVE_FORK 0/' $$(OPENSSL_SRCDIR-$(target))/apps/speed.c
 endif
@@ -337,12 +341,50 @@ $$(OPENSSL_DIST-$(target)): $$(OPENSSL_SSL_LIB-$(target))
 	cd $$(OPENSSL_INSTALL-$(target)) && tar zcvf $(PROJECT_DIR)/$$(OPENSSL_DIST-$(target)) lib include
 
 ###########################################################################
+# Target: libFFI
+###########################################################################
+
+# The configure step is performed as part of the OS-level build.
+
+LIBFFI_SRCDIR-$(os)=build/$(os)/libffi-$(LIBFFI_VERSION)
+LIBFFI_SRCDIR-$(target)=$$(LIBFFI_SRCDIR-$(os))/build_$$(SDK-$(target))-$$(ARCH-$(target))
+LIBFFI_BUILD_LIB-$(target)=$$(LIBFFI_SRCDIR-$(target))/.libs/libffi.a
+LIBFFI_INSTALL-$(target)=$(PROJECT_DIR)/install/$(os)/$(target)/libffi-$(LIBFFI_VERSION)
+LIBFFI_LIB-$(target)=$$(LIBFFI_INSTALL-$(target))/lib/libffi.a
+LIBFFI_DIST-$(target)=dist/libffi-$(LIBFFI_VERSION)-$(BUILD_NUMBER)-$(target).tar.gz
+
+$$(LIBFFI_BUILD_LIB-$(target)): $$(LIBFFI_SRCDIR-$(os))/darwin_common/include/ffi.h
+	@echo ">>> Build libFFI for $(target)"
+	cd $$(LIBFFI_SRCDIR-$(target)) && \
+		make \
+			2>&1 | tee -a ../../libffi-$(LIBFFI_VERSION).build.log
+
+$$(LIBFFI_LIB-$(target)): $$(LIBFFI_BUILD_LIB-$(target))
+	@echo ">>> Install libFFI for $(target)"
+	mkdir -p $$(LIBFFI_INSTALL-$(target))/lib
+	cp $$(LIBFFI_BUILD_LIB-$(target)) $$(LIBFFI_LIB-$(target))
+
+	# Copy the set of platform headers
+	cp -f -r $$(LIBFFI_SRCDIR-$(os))/darwin_common/include \
+		$$(LIBFFI_INSTALL-$(target))
+	cp -f -r $$(LIBFFI_SRCDIR-$(os))/darwin_$$(OS_LOWER-$(sdk))/include/* \
+		$$(LIBFFI_INSTALL-$(target))/include
+
+
+$$(LIBFFI_DIST-$(target)): $$(LIBFFI_LIB-$(target))
+	@echo ">>> Build libFFI distribution for $(target)"
+	mkdir -p dist
+
+	cd $$(LIBFFI_INSTALL-$(target)) && tar zcvf $(PROJECT_DIR)/$$(LIBFFI_DIST-$(target)) lib include
+
+###########################################################################
 # Target: Macro Expansions
 ###########################################################################
 
 BZip2-$(target): $$(BZIP2_DIST-$(target))
 XZ-$(target): $$(XZ_DIST-$(target))
 OpenSSL-$(target): $$(OPENSSL_DIST-$(target))
+libFFI-$(target): $$(LIBFFI_DIST-$(target))
 
 ###########################################################################
 # Target: Debug
@@ -369,6 +411,11 @@ vars-$(target):
 	@echo "OPENSSL_INSTALL-$(target): $$(OPENSSL_INSTALL-$(target))"
 	@echo "OPENSSL_SSL_LIB-$(target): $$(OPENSSL_SSL_LIB-$(target))"
 	@echo "OPENSSL_DIST-$(target): $$(OPENSSL_DIST-$(target))"
+	@echo "LIBFFI_SRCDIR-$(target): $$(LIBFFI_SRCDIR-$(target))"
+	@echo "LIBFFI_BUILD_LIB-$(target): $$(LIBFFI_BUILD_LIB-$(target))"
+	@echo "LIBFFI_INSTALL-$(target): $$(LIBFFI_INSTALL-$(target))"
+	@echo "LIBFFI_LIB-$(target): $$(LIBFFI_LIB-$(target))"
+	@echo "LIBFFI_DIST-$(target): $$(LIBFFI_DIST-$(target))"
 	@echo
 
 endef # build-target
@@ -403,6 +450,7 @@ $$(foreach target,$$(SDK_TARGETS-$(sdk)),$$(eval $$(call build-target,$$(target)
 BZip2-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),BZip2-$$(target))
 XZ-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),XZ-$$(target))
 OpenSSL-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),OpenSSL-$$(target))
+libFFI-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),libFFI-$$(target))
 
 ###########################################################################
 # SDK: Debug
@@ -427,18 +475,34 @@ endef # build-sdk
 define build
 os=$1
 
-###########################################################################
-# Build: Macro Expansions
-###########################################################################
-
 SDKS-$(os)=$$(sort $$(basename $$(TARGETS-$(os))))
 
 # Expand the build-sdk macro for all the sdks on this OS (e.g., iphoneos, iphonesimulator)
 $$(foreach sdk,$$(SDKS-$(os)),$$(eval $$(call build-sdk,$$(sdk),$(os))))
 
+###########################################################################
+# Build: libFFI
+###########################################################################
+
+$$(LIBFFI_SRCDIR-$(os))/darwin_common/include/ffi.h: downloads/libffi-$(LIBFFI_VERSION).tar.gz
+	@echo ">>> Unpack and configure libFFI sources on $(os)"
+	mkdir -p $$(LIBFFI_SRCDIR-$(os))
+	tar zxf $$< --strip-components 1 -C $$(LIBFFI_SRCDIR-$(os))
+	# Patch the build to add support for new platforms
+	cd $$(LIBFFI_SRCDIR-$(os)) && patch -p1 < $(PROJECT_DIR)/patch/libffi-$(LIBFFI_VERSION).patch
+	# Configure the build
+	cd $$(LIBFFI_SRCDIR-$(os)) && \
+		python3 generate-darwin-source-and-headers.py --only-$(shell echo $(os) | tr '[:upper:]' '[:lower:]') \
+		2>&1 | tee -a ../libffi-$(LIBFFI_VERSION).config.log
+
+###########################################################################
+# Build: Macro Expansions
+###########################################################################
+
 BZip2-$(os): $$(foreach sdk,$$(SDKS-$(os)),BZip2-$$(sdk))
 XZ-$(os): $$(foreach sdk,$$(SDKS-$(os)),XZ-$$(sdk))
 OpenSSL-$(os): $$(foreach sdk,$$(SDKS-$(os)),OpenSSL-$$(sdk))
+libFFI-$(os): $$(foreach sdk,$$(SDKS-$(os)),libFFI-$$(sdk))
 
 clean-BZip2-$(os):
 	@echo ">>> Clean BZip2 build products on $(os)"
@@ -461,13 +525,22 @@ clean-XZ-$(os):
 clean-OpenSSL-$(os):
 	@echo ">>> Clean OpenSSL build products on $(os)"
 	rm -rf \
-		build/$(os)/*/xz-$(OPENSSL_VERSION) \
-		build/$(os)/*/xz-$(OPENSSL_VERSION).*.log \
-		install/$(os)/*/xz-$(OPENSSL_VERSION) \
-		install/$(os)/*/xz-$(OPENSSL_VERSION).*.log \
-		dist/xz-$(OPENSSL_VERSION)-*
+		build/$(os)/*/openssl-$(OPENSSL_VERSION) \
+		build/$(os)/*/openssl-$(OPENSSL_VERSION).*.log \
+		install/$(os)/*/openssl-$(OPENSSL_VERSION) \
+		install/$(os)/*/openssl-$(OPENSSL_VERSION).*.log \
+		dist/openssl-$(OPENSSL_VERSION)-*
 
-$(os): BZip2-$(os) XZ-$(os) OpenSSL-$(os)
+clean-libFFI-$(os):
+	@echo ">>> Clean libFFI build products on $(os)"
+	rm -rf \
+		build/$(os)/*/libffi-$(LIBFFI_VERSION) \
+		build/$(os)/*/libffi-$(LIBFFI_VERSION).*.log \
+		install/$(os)/*/libffi-$(LIBFFI_VERSION) \
+		install/$(os)/*/libffi-$(LIBFFI_VERSION).*.log \
+		dist/libffi-$(LIBFFI_VERSION)-*
+
+$(os): BZip2-$(os) XZ-$(os) OpenSSL-$(os) libFFI-$(os)
 
 ###########################################################################
 # Build: Debug
@@ -476,6 +549,7 @@ $(os): BZip2-$(os) XZ-$(os) OpenSSL-$(os)
 vars-$(os): $$(foreach target,$$(TARGETS-$(os)),vars-$$(target)) $$(foreach sdk,$$(SDKS-$(os)),vars-$$(sdk))
 	@echo ">>> Environment variables for $(os)"
 	@echo "SDKS-$(os): $$(SDKS-$(os))"
+	@echo "LIBFFI_SRCDIR-$(os): $$(LIBFFI_SRCDIR-$(os))"
 	@echo
 
 endef # build
@@ -487,10 +561,12 @@ vars: $(foreach os,$(OS_LIST),vars-$(os))
 BZip2: $(foreach os,$(OS_LIST),BZip2-$(os))
 XZ: $(foreach os,$(OS_LIST),XZ-$(os))
 OpenSSL: $(foreach os,$(OS_LIST),OpenSSL-$(os))
+libFFI: $(foreach os,$(OS_LIST),libFFI-$(os))
 
 clean-BZip2: $(foreach os,$(OS_LIST),clean-BZip2-$(os))
 clean-XZ: $(foreach os,$(OS_LIST),clean-XZ-$(os))
 clean-OpenSSL: $(foreach os,$(OS_LIST),clean-OpenSSL-$(os))
+clean-libFFI: $(foreach os,$(OS_LIST),clean-libFFI-$(os))
 
 # Expand the build macro for every OS
 $(foreach os,$(OS_LIST),$(eval $(call build,$(os))))
