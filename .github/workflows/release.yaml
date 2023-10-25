@@ -9,6 +9,10 @@ on:
 jobs:
   build:
     runs-on: macOS-latest
+    outputs:
+      PACKAGE_NAME: ${{ steps.build-vars.outputs.PACKAGE_NAME }}
+      PACKAGE_VERSION: ${{ steps.build-vars.outputs.PACKAGE_VERSION }}
+      BUILD_NUMBER: ${{ steps.build-vars.outputs.BUILD_NUMBER }}
     strategy:
       matrix:
         target: ['iOS', 'tvOS', 'watchOS']
@@ -38,8 +42,6 @@ jobs:
       with:
         python-version: "3.X"
     - name: Build ${{ matrix.target }}
-      env:
-        BUILD_NUMBER: ${{ env.BUILD_NUMBER }}
       run: |
         # 2020-06-24: The Homebrew copy of gettext leaks into the macOS build
         # if it is present. Uninstall gettext to make sure that doesn't happen.
@@ -49,9 +51,9 @@ jobs:
         brew uninstall --ignore-dependencies gettext curl
 
         # Do the build for the requested target.
-        make ${{ env.PACKAGE_NAME }}-${{ matrix.target }} $(echo "${{ env.PACKAGE_NAME }}" | tr 'a-z' 'A-Z')_VERSION=$${{ env.PACKAGE_VERSION }} BUILD_NUMBER=${{ env.BUILD_NUMBER }}
+        make ${{ steps.build-vars.outputs.PACKAGE_NAME }}-${{ matrix.target }} $(echo "${{ steps.build-vars.outputs.PACKAGE_NAME }}" | tr 'a-z' 'A-Z')_VERSION=$${{ steps.build-vars.outputs.PACKAGE_VERSION }} BUILD_NUMBER=${{ steps.build-vars.outputs.BUILD_NUMBER }}
 
-    - name: Upload build artefact
+    - name: Upload build artifact
       uses: actions/upload-artifact@v3.1.3
       with:
         name: dist
@@ -62,30 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-    - name: Set build variables
-      id: build-vars
-      env:
-        TAG_NAME: ${{ github.ref }}
-      run: |
-        export TAG=$(basename $TAG_NAME)
-        echo "TAG=${TAG}"
-
-        export PACKAGE_NAME_VERSION="${TAG%-*}"
-
-        export PACKAGE_NAME="${PACKAGE_NAME_VERSION%-*}"
-        echo "PACKAGE_NAME=${PACKAGE_NAME}"
-
-        export PACKAGE_VERSION="${PACKAGE_NAME_VERSION#*-}"
-        echo "PACKAGE_VERSION=${PACKAGE_VERSION}"
-
-        export BUILD_NUMBER="${TAG#*-*-}"
-        echo "BUILD_NUMBER=${BUILD_NUMBER}"
-
-        echo "PACKAGE_NAME=${PACKAGE_NAME}" >> ${GITHUB_OUTPUT}
-        echo "PACKAGE_VERSION=${PACKAGE_VERSION}" >> ${GITHUB_OUTPUT}
-        echo "BUILD_NUMBER=${BUILD_NUMBER}" >> ${GITHUB_OUTPUT}
-
-    - name: Get build artefacts
+    - name: Get build artifacts
       uses: actions/download-artifact@v3.0.2
       with:
         name: dist
@@ -94,8 +73,8 @@ jobs:
     - name: Create Release
       uses: ncipollo/release-action@v1.13.0
       with:
-        name: ${{ env.PACKAGE_NAME }} v${{ env.PACKAGE_VERSION }} (build ${{ env.BUILD_NUMBER }})
+        name: ${{ needs.build.outputs.PACKAGE_NAME }} v${{ needs.build.outputs.PACKAGE_VERSION }} (build ${{ needs.build.outputs.BUILD_NUMBER }})
         draft: true
         body: |
-          Build ${{ env.BUILD_NUMBER }} of ${{ env.PACKAGE_NAME }} v${{ env.PACKAGE_VERSION }}.
+          Build ${{ needs.build.outputs.BUILD_NUMBER }} of ${{ needs.build.outputs.PACKAGE_NAME }} v${{ needs.build.outputs.PACKAGE_VERSION }}.
         artifacts: "dist/*"
