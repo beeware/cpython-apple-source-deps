@@ -34,7 +34,7 @@ jobs:
         echo "PACKAGE_VERSION=${PACKAGE_VERSION}" >> ${GITHUB_OUTPUT}
         echo "BUILD_NUMBER=${BUILD_NUMBER}" >> ${GITHUB_OUTPUT}
     - name: Set up Python
-      uses: actions/setup-python@v3.1.2
+      uses: actions/setup-python@v4.7.1
       with:
         python-version: "3.X"
     - name: Build ${{ matrix.target }}
