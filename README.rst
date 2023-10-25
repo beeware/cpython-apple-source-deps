@@ -1,8 +1,8 @@
 CPython Apple source dependencies
 =================================
 
-This is a meta-package for building the binary packages that a CPython
-build is dependent on to support the standard library:
+A meta-package for building the binary packages for iOS, tvOS and watchOS that a
+CPython build requires. This includes:
 
 * BZip2
 * XZ
