@@ -43,13 +43,6 @@ jobs:
         python-version: "3.X"
     - name: Build ${{ matrix.target }}
       run: |
-        # 2020-06-24: The Homebrew copy of gettext leaks into the macOS build
-        # if it is present. Uninstall gettext to make sure that doesn't happen.
-        # 2021-01-02: Uninstall curl as well. We need curl to download the
-        # source bundles, but Homebrew's curl has a runtime dependency on
-        # gettext. However macOS provides a version of curl that works fine.
-        brew uninstall --ignore-dependencies gettext curl
-
         # Do the build for the requested target.
         make ${{ steps.build-vars.outputs.PACKAGE_NAME }}-${{ matrix.target }} $(echo "${{ steps.build-vars.outputs.PACKAGE_NAME }}" | tr 'a-z' 'A-Z')_VERSION=${{ steps.build-vars.outputs.PACKAGE_VERSION }} BUILD_NUMBER=${{ steps.build-vars.outputs.BUILD_NUMBER }}
 
