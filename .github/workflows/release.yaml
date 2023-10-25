@@ -51,7 +51,7 @@ jobs:
         brew uninstall --ignore-dependencies gettext curl
 
         # Do the build for the requested target.
-        make ${{ steps.build-vars.outputs.PACKAGE_NAME }}-${{ matrix.target }} $(echo "${{ steps.build-vars.outputs.PACKAGE_NAME }}" | tr 'a-z' 'A-Z')_VERSION=$${{ steps.build-vars.outputs.PACKAGE_VERSION }} BUILD_NUMBER=${{ steps.build-vars.outputs.BUILD_NUMBER }}
+        make ${{ steps.build-vars.outputs.PACKAGE_NAME }}-${{ matrix.target }} $(echo "${{ steps.build-vars.outputs.PACKAGE_NAME }}" | tr 'a-z' 'A-Z')_VERSION=${{ steps.build-vars.outputs.PACKAGE_VERSION }} BUILD_NUMBER=${{ steps.build-vars.outputs.BUILD_NUMBER }}
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v3.1.3
