@@ -1,26 +1,21 @@
 #
 # Useful targets:
 # - all             - build everything
-# - macOS           - build everything for macOS
 # - iOS             - build everything for iOS
 # - tvOS            - build everything for tvOS
 # - watchOS         - build everything for watchOS
 # - BZip2           - build BZip2 for all platforms
-# - BZip2-macOS     - build BZip2 for macOS
 # - BZip2-iOS       - build BZip2 for iOS
 # - BZip2-tvOS      - build BZip2 for tvOS
 # - BZip2-watchOS   - build BZip2 for watchOS
 # - XZ              - build XZ for all platforms
-# - XZ-macOS        - build XZ for macOS
 # - XZ-iOS          - build XZ for iOS
 # - XZ-tvOS         - build XZ for tvOS
 # - XZ-watchOS      - build XZ for watchOS
 # - OpenSSL         - build OpenSSL for all platforms
-# - OpenSSL-macOS   - build OpenSSL for macOS
 # - OpenSSL-iOS     - build OpenSSL for iOS
 # - OpenSSL-tvOS    - build OpenSSL for tvOS
 # - OpenSSL-watchOS - build OpenSSL for watchOS
-# - libFFI          - build libFFI for all platforms (except macOS)
 # - libFFI-iOS      - build libFFI for iOS
 # - libFFI-tvOS     - build libFFI for tvOS
 # - libFFI-watchOS  - build libFFI for watchOS
@@ -80,15 +75,10 @@ HOST_ARCH=$(shell uname -m)
 # linked into the support package.
 PATH=/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin
 
+.PHONY: all clean distclean
+
 # Build for all operating systems
 all: $(OS_LIST)
-
-.PHONY: \
-	all clean distclean vars \
-	$(foreach os,$(OS_LIST),$(os) clean-$(os) vars-$(os)) \
-	$(foreach os,$(OS_LIST),$(foreach product,$(PRODUCTS),$(product)-$(os) clean-$(product)-$(os))) \
-	$(foreach os,$(OS_LIST),$(foreach target,$$(TARGETS-$(os)),$(product)-$(target) clean-$(product)-$(target))) \
-	$(foreach os,$(OS_LIST),$(foreach sdk,$$(sort $$(basename $$(TARGETS-$(os)))),$(product)-$(sdk) clean-$(product)-$(sdk)))
 
 # Clean all builds
 clean:
@@ -209,6 +199,9 @@ $$(BZIP2_DIST-$(target)): $$(BZIP2_LIB-$(target))
 
 	cd $$(BZIP2_INSTALL-$(target)) && tar zcvf $(PROJECT_DIR)/$$(BZIP2_DIST-$(target)) lib include
 
+.PHONY: BZip2-$(target)
+BZip2-$(target): $$(BZIP2_DIST-$(target))
+
 ###########################################################################
 # Target: XZ (LZMA)
 ###########################################################################
@@ -255,6 +248,9 @@ $$(XZ_DIST-$(target)): $$(XZ_LIB-$(target))
 
 	cd $$(XZ_INSTALL-$(target)) && tar zcvf $(PROJECT_DIR)/$$(XZ_DIST-$(target)) lib include
 
+.PHONY: XZ-$(target)
+XZ-$(target): $$(XZ_DIST-$(target))
+
 ###########################################################################
 # Target: OpenSSL
 ###########################################################################
@@ -285,15 +281,6 @@ endif
 
 $$(OPENSSL_SRCDIR-$(target))/is_configured: $$(OPENSSL_SRCDIR-$(target))/Configure
 	# Configure the OpenSSL build
-ifeq ($(os),macOS)
-	cd $$(OPENSSL_SRCDIR-$(target)) && \
-		PATH="$(PROJECT_DIR)/install/$(os)/bin:$(PATH)" \
-		CC="$$(CC-$(target)) $$(CFLAGS-$(target))" \
-		./Configure darwin64-$$(ARCH-$(target))-cc no-tests \
-			--prefix="$$(OPENSSL_INSTALL-$(target))" \
-			--openssldir=/etc/ssl \
-			2>&1 | tee -a ../openssl-$(OPENSSL_VERSION).config.log
-else
 	cd $$(OPENSSL_SRCDIR-$(target)) && \
 		PATH="$(PROJECT_DIR)/install/$(os)/bin:$(PATH)" \
 		CC="$$(CC-$(target)) $$(CFLAGS-$(target))" \
@@ -303,7 +290,7 @@ else
 			--prefix="$$(OPENSSL_INSTALL-$(target))" \
 			--openssldir=/etc/ssl \
 			2>&1 | tee -a ../openssl-$(OPENSSL_VERSION).config.log
-endif
+
 	# The OpenSSL Makefile is... interesting. Invoking `make all` or `make
 	# install` *modifies the Makefile*. Therefore, we can't use the Makefile as
 	# a build dependency, because building/installing dirties the target that
@@ -339,6 +326,9 @@ $$(OPENSSL_DIST-$(target)): $$(OPENSSL_SSL_LIB-$(target))
 	mkdir -p dist
 
 	cd $$(OPENSSL_INSTALL-$(target)) && tar zcvf $(PROJECT_DIR)/$$(OPENSSL_DIST-$(target)) lib include
+
+.PHONY: OpenSSL-$(target)
+OpenSSL-$(target): $$(OPENSSL_DIST-$(target))
 
 ###########################################################################
 # Target: libFFI
@@ -377,19 +367,14 @@ $$(LIBFFI_DIST-$(target)): $$(LIBFFI_LIB-$(target))
 
 	cd $$(LIBFFI_INSTALL-$(target)) && tar zcvf $(PROJECT_DIR)/$$(LIBFFI_DIST-$(target)) lib include
 
-###########################################################################
-# Target: Macro Expansions
-###########################################################################
-
-BZip2-$(target): $$(BZIP2_DIST-$(target))
-XZ-$(target): $$(XZ_DIST-$(target))
-OpenSSL-$(target): $$(OPENSSL_DIST-$(target))
+.PHONY: libFFI-$(target)
 libFFI-$(target): $$(LIBFFI_DIST-$(target))
 
 ###########################################################################
 # Target: Debug
 ###########################################################################
 
+.PHONY: vars-$(target)
 vars-$(target):
 	@echo ">>> Environment variables for $(target)"
 	@echo "SDK-$(target): $$(SDK-$(target))"
@@ -447,6 +432,7 @@ SDK_ARCHES-$(sdk)=$$(sort $$(subst .,,$$(suffix $$(SDK_TARGETS-$(sdk)))))
 # Expand the build-target macro for target on this OS
 $$(foreach target,$$(SDK_TARGETS-$(sdk)),$$(eval $$(call build-target,$$(target),$(os))))
 
+.PHONY: BZip2-$(sdk) XZ-$(sdk) OpenSSL-$(sdk) libFFI-$(sdk)
 BZip2-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),BZip2-$$(target))
 XZ-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),XZ-$$(target))
 OpenSSL-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),OpenSSL-$$(target))
@@ -456,6 +442,7 @@ libFFI-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),libFFI-$$(target))
 # SDK: Debug
 ###########################################################################
 
+.PHONY: vars-$(sdk)
 vars-$(sdk):
 	@echo ">>> Environment variables for $(sdk)"
 	@echo "SDK_TARGETS-$(sdk): $$(SDK_TARGETS-$(sdk))"
@@ -499,11 +486,13 @@ $$(LIBFFI_SRCDIR-$(os))/darwin_common/include/ffi.h: downloads/libffi-$(LIBFFI_V
 # Build: Macro Expansions
 ###########################################################################
 
+.PHONY: BZip2-$(os) XZ-$(os) OpenSSL-$(os) libFFI-$(os)
 BZip2-$(os): $$(foreach sdk,$$(SDKS-$(os)),BZip2-$$(sdk))
 XZ-$(os): $$(foreach sdk,$$(SDKS-$(os)),XZ-$$(sdk))
 OpenSSL-$(os): $$(foreach sdk,$$(SDKS-$(os)),OpenSSL-$$(sdk))
 libFFI-$(os): $$(foreach sdk,$$(SDKS-$(os)),libFFI-$$(sdk))
 
+.PHONY: clean-BZip2-$(os) clean-XZ-$(os) clean-OpenSSL-$(os) clean-libFFI-$(os)
 clean-BZip2-$(os):
 	@echo ">>> Clean BZip2 build products on $(os)"
 	rm -rf \
@@ -540,12 +529,14 @@ clean-libFFI-$(os):
 		install/$(os)/*/libffi-$(LIBFFI_VERSION).*.log \
 		dist/libffi-$(LIBFFI_VERSION)-*
 
+.PHONY: $(os)
 $(os): BZip2-$(os) XZ-$(os) OpenSSL-$(os) libFFI-$(os)
 
 ###########################################################################
 # Build: Debug
 ###########################################################################
 
+.PHONY: vars-$(os)
 vars-$(os): $$(foreach target,$$(TARGETS-$(os)),vars-$$(target)) $$(foreach sdk,$$(SDKS-$(os)),vars-$$(sdk))
 	@echo ">>> Environment variables for $(os)"
 	@echo "SDKS-$(os): $$(SDKS-$(os))"
@@ -555,9 +546,11 @@ vars-$(os): $$(foreach target,$$(TARGETS-$(os)),vars-$$(target)) $$(foreach sdk,
 endef # build
 
 # Dump environment variables (for debugging purposes)
+.PHONY: vars
 vars: $(foreach os,$(OS_LIST),vars-$(os))
 
 # Expand the targets for each product
+.PHONY: BZip2 XZ OpenSSL libFFI
 BZip2: $(foreach os,$(OS_LIST),BZip2-$(os))
 XZ: $(foreach os,$(OS_LIST),XZ-$(os))
 OpenSSL: $(foreach os,$(OS_LIST),OpenSSL-$(os))
