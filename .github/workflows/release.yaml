@@ -19,7 +19,7 @@ jobs:
         target: [ "iOS", "tvOS", "watchOS" ]
     steps:
     - name: Checkout
-      uses: actions/checkout@v4.1.5
+      uses: actions/checkout@v4.1.6
 
     - name: Set Build Variables
       id: build-vars
