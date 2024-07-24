@@ -16,6 +16,10 @@
 # - OpenSSL-iOS     - build OpenSSL for iOS
 # - OpenSSL-tvOS    - build OpenSSL for tvOS
 # - OpenSSL-watchOS - build OpenSSL for watchOS
+# - mpdecimal         - build mpdecimal for all platforms
+# - mpdecimal-iOS     - build mpdecimal for iOS
+# - mpdecimal-tvOS    - build mpdecimal for tvOS
+# - mpdecimal-watchOS - build mpdecimal for watchOS
 # - libFFI-iOS      - build libFFI for iOS
 # - libFFI-tvOS     - build libFFI for tvOS
 # - libFFI-watchOS  - build libFFI for watchOS
@@ -36,23 +40,25 @@ BUILD_NUMBER=custom
 
 BZIP2_VERSION=1.0.8
 
-XZ_VERSION=5.4.4
+XZ_VERSION=5.4.7
 
 # Preference is to use OpenSSL 3; however, Cryptography 3.4.8 (and
 # probably some other packages as well) only works with 1.1.1, so
 # we need to preserve the ability to build the older OpenSSL (for now...)
-OPENSSL_VERSION=3.0.12
+OPENSSL_VERSION=3.0.14
 # OPENSSL_VERSION=1.1.1w
 # The Series is the first 2 digits of the version number. (e.g., 1.1.1w -> 1.1)
 OPENSSL_SERIES=$(shell echo $(OPENSSL_VERSION) | grep -Eo "\d+\.\d+")
 
-LIBFFI_VERSION=3.4.4
+MPDECIMAL_VERSION=4.0.0
+
+LIBFFI_VERSION=3.4.6
 
 CURL_FLAGS=--disable --fail --location --create-dirs --progress-bar
 
 # iOS targets
 TARGETS-iOS=iphonesimulator.x86_64 iphonesimulator.arm64 iphoneos.arm64
-VERSION_MIN-iOS=12.0
+VERSION_MIN-iOS=13.0
 CFLAGS-iOS=-mios-version-min=$(VERSION_MIN-iOS)
 
 # tvOS targets
@@ -123,6 +129,17 @@ downloads/openssl-$(OPENSSL_VERSION).tar.gz:
 			https://openssl.org/source/old/$(basename $(OPENSSL_VERSION))/$(notdir $@)
 
 ###########################################################################
+# Setup: mpdecimal
+###########################################################################
+
+# Download original mpdecimal source code archive.
+downloads/mpdecimal-$(MPDECIMAL_VERSION).tar.gz:
+	@echo ">>> Download mpdecimal sources"
+	curl $(CURL_FLAGS) -o $@ \
+		https://www.bytereef.org/software/mpdecimal/releases/mpdecimal-$(MPDECIMAL_VERSION).tar.gz
+
+
+###########################################################################
 # Setup: libFFI
 ###########################################################################
 
@@ -159,6 +176,7 @@ endif
 
 SDK_ROOT-$(target)=$$(shell xcrun --sdk $$(SDK-$(target)) --show-sdk-path)
 CC-$(target)=xcrun --sdk $$(SDK-$(target)) clang -target $$(TARGET_TRIPLE-$(target))
+CXX-$(target)=xcrun --sdk $$(SDK-$(target)) clang -target $$(TARGET_TRIPLE-$(target))
 CFLAGS-$(target)=\
 	--sysroot=$$(SDK_ROOT-$(target)) \
 	$$(CFLAGS-$(os))
@@ -331,6 +349,56 @@ $$(OPENSSL_DIST-$(target)): $$(OPENSSL_SSL_LIB-$(target))
 OpenSSL-$(target): $$(OPENSSL_DIST-$(target))
 
 ###########################################################################
+# Target: mpdecimal
+###########################################################################
+
+MPDECIMAL_SRCDIR-$(target)=build/$(os)/$(target)/mpdecimal-$(MPDECIMAL_VERSION)
+MPDECIMAL_INSTALL-$(target)=$(PROJECT_DIR)/install/$(os)/$(target)/mpdecimal-$(MPDECIMAL_VERSION)
+MPDECIMAL_LIB-$(target)=$$(MPDECIMAL_INSTALL-$(target))/lib/libmpdec.a
+MPDECIMAL_DIST-$(target)=dist/mpdecimal-$(MPDECIMAL_VERSION)-$(BUILD_NUMBER)-$(target).tar.gz
+
+$$(MPDECIMAL_SRCDIR-$(target))/configure: downloads/mpdecimal-$(MPDECIMAL_VERSION).tar.gz
+	@echo ">>> Unpack mpdecimal sources for $(target)"
+	mkdir -p $$(MPDECIMAL_SRCDIR-$(target))
+	tar zxf $$< --strip-components 1 -C $$(MPDECIMAL_SRCDIR-$(target))
+	# Patch the source to add support for new platforms
+	cd $$(MPDECIMAL_SRCDIR-$(target)) && patch -p1 < $(PROJECT_DIR)/patch/mpdecimal-$(MPDECIMAL_VERSION).patch
+	# Touch the configure script to ensure that Make identifies it as up to date.
+	touch $$(MPDECIMAL_SRCDIR-$(target))/configure
+
+$$(MPDECIMAL_SRCDIR-$(target))/Makefile: $$(MPDECIMAL_SRCDIR-$(target))/configure
+	# Configure the build
+	cd $$(MPDECIMAL_SRCDIR-$(target)) && \
+		PATH="$(PROJECT_DIR)/install/$(os)/bin:$(PATH)" \
+		./configure \
+			CC="$$(CC-$(target))" \
+			CXX="$$(CXX-$(target))" \
+			CFLAGS="$$(CFLAGS-$(target))" \
+			LDFLAGS="$$(LDFLAGS-$(target))" \
+			--disable-shared \
+			--enable-static \
+			--host=$$(TARGET_TRIPLE-$(target)) \
+			--build=$(HOST_ARCH)-apple-darwin \
+			--prefix="$$(MPDECIMAL_INSTALL-$(target))" \
+			2>&1 | tee -a ../xz-$(MPDECIMAL_VERSION).config.log
+
+$$(MPDECIMAL_LIB-$(target)): $$(MPDECIMAL_SRCDIR-$(target))/Makefile
+	@echo ">>> Build and install MPDECIMAL for $(target)"
+	cd $$(MPDECIMAL_SRCDIR-$(target)) && \
+		PATH="$(PROJECT_DIR)/install/$(os)/bin:$(PATH)" \
+		make install \
+			2>&1 | tee -a ../xz-$(MPDECIMAL_VERSION).build.log
+
+$$(MPDECIMAL_DIST-$(target)): $$(MPDECIMAL_LIB-$(target))
+	@echo ">>> Build MPDECIMAL distribution for $(target)"
+	mkdir -p dist
+
+	cd $$(MPDECIMAL_INSTALL-$(target)) && tar zcvf $(PROJECT_DIR)/$$(MPDECIMAL_DIST-$(target)) lib include
+
+.PHONY: mpdecimal-$(target)
+mpdecimal-$(target): $$(MPDECIMAL_DIST-$(target))
+
+###########################################################################
 # Target: libFFI
 ###########################################################################
 
@@ -359,7 +427,6 @@ $$(LIBFFI_LIB-$(target)): $$(LIBFFI_BUILD_LIB-$(target))
 		$$(LIBFFI_INSTALL-$(target))
 	cp -f -r $$(LIBFFI_SRCDIR-$(os))/darwin_$$(OS_LOWER-$(sdk))/include/* \
 		$$(LIBFFI_INSTALL-$(target))/include
-
 
 $$(LIBFFI_DIST-$(target)): $$(LIBFFI_LIB-$(target))
 	@echo ">>> Build libFFI distribution for $(target)"
@@ -396,6 +463,10 @@ vars-$(target):
 	@echo "OPENSSL_INSTALL-$(target): $$(OPENSSL_INSTALL-$(target))"
 	@echo "OPENSSL_SSL_LIB-$(target): $$(OPENSSL_SSL_LIB-$(target))"
 	@echo "OPENSSL_DIST-$(target): $$(OPENSSL_DIST-$(target))"
+	@echo "MPDECIMAL_SRCDIR-$(target): $$(MPDECIMAL_SRCDIR-$(target))"
+	@echo "MPDECIMAL_INSTALL-$(target): $$(MPDECIMAL_INSTALL-$(target))"
+	@echo "MPDECIMAL_LIB-$(target): $$(MPDECIMAL_LIB-$(target))"
+	@echo "MPDECIMAL_DIST-$(target): $$(MPDECIMAL_DIST-$(target))"
 	@echo "LIBFFI_SRCDIR-$(target): $$(LIBFFI_SRCDIR-$(target))"
 	@echo "LIBFFI_BUILD_LIB-$(target): $$(LIBFFI_BUILD_LIB-$(target))"
 	@echo "LIBFFI_INSTALL-$(target): $$(LIBFFI_INSTALL-$(target))"
@@ -436,6 +507,7 @@ $$(foreach target,$$(SDK_TARGETS-$(sdk)),$$(eval $$(call build-target,$$(target)
 BZip2-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),BZip2-$$(target))
 XZ-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),XZ-$$(target))
 OpenSSL-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),OpenSSL-$$(target))
+mpdecimal-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),mpdecimal-$$(target))
 libFFI-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),libFFI-$$(target))
 
 ###########################################################################
@@ -475,8 +547,6 @@ $$(LIBFFI_SRCDIR-$(os))/darwin_common/include/ffi.h: downloads/libffi-$(LIBFFI_V
 	@echo ">>> Unpack and configure libFFI sources on $(os)"
 	mkdir -p $$(LIBFFI_SRCDIR-$(os))
 	tar zxf $$< --strip-components 1 -C $$(LIBFFI_SRCDIR-$(os))
-	# Patch the build to add support for new platforms
-	cd $$(LIBFFI_SRCDIR-$(os)) && patch -p1 < $(PROJECT_DIR)/patch/libffi-$(LIBFFI_VERSION).patch
 	# Configure the build
 	cd $$(LIBFFI_SRCDIR-$(os)) && \
 		python3 generate-darwin-source-and-headers.py --only-$(shell echo $(os) | tr '[:upper:]' '[:lower:]') \
@@ -490,9 +560,10 @@ $$(LIBFFI_SRCDIR-$(os))/darwin_common/include/ffi.h: downloads/libffi-$(LIBFFI_V
 BZip2-$(os): $$(foreach sdk,$$(SDKS-$(os)),BZip2-$$(sdk))
 XZ-$(os): $$(foreach sdk,$$(SDKS-$(os)),XZ-$$(sdk))
 OpenSSL-$(os): $$(foreach sdk,$$(SDKS-$(os)),OpenSSL-$$(sdk))
+mpdecimal-$(os): $$(foreach sdk,$$(SDKS-$(os)),mpdecimal-$$(sdk))
 libFFI-$(os): $$(foreach sdk,$$(SDKS-$(os)),libFFI-$$(sdk))
 
-.PHONY: clean-BZip2-$(os) clean-XZ-$(os) clean-OpenSSL-$(os) clean-libFFI-$(os)
+.PHONY: clean-BZip2-$(os) clean-XZ-$(os) clean-OpenSSL-$(os) clean-mpdecimal-$(os) clean-libFFI-$(os)
 clean-BZip2-$(os):
 	@echo ">>> Clean BZip2 build products on $(os)"
 	rm -rf \
@@ -520,6 +591,15 @@ clean-OpenSSL-$(os):
 		install/$(os)/*/openssl-$(OPENSSL_VERSION).*.log \
 		dist/openssl-$(OPENSSL_VERSION)-*
 
+clean-mpdecimal-$(os):
+	@echo ">>> Clean mpdecimal build products on $(os)"
+	rm -rf \
+		build/$(os)/*/mpdecimal-$(MPDECIMAL_VERSION) \
+		build/$(os)/*/mpdecimal-$(MPDECIMAL_VERSION).*.log \
+		install/$(os)/*/mpdecimal-$(MPDECIMAL_VERSION) \
+		install/$(os)/*/mpdecimal-$(MPDECIMAL_VERSION).*.log \
+		dist/mpdecimal-$(MPDECIMAL_VERSION)-*
+
 clean-libFFI-$(os):
 	@echo ">>> Clean libFFI build products on $(os)"
 	rm -rf \
@@ -530,7 +610,7 @@ clean-libFFI-$(os):
 		dist/libffi-$(LIBFFI_VERSION)-*
 
 .PHONY: $(os)
-$(os): BZip2-$(os) XZ-$(os) OpenSSL-$(os) libFFI-$(os)
+$(os): BZip2-$(os) XZ-$(os) OpenSSL-$(os) mpdecimal-$(os) libFFI-$(os)
 
 ###########################################################################
 # Build: Debug
@@ -550,15 +630,17 @@ endef # build
 vars: $(foreach os,$(OS_LIST),vars-$(os))
 
 # Expand the targets for each product
-.PHONY: BZip2 XZ OpenSSL libFFI
+.PHONY: BZip2 XZ OpenSSL mpdecimal libFFI
 BZip2: $(foreach os,$(OS_LIST),BZip2-$(os))
 XZ: $(foreach os,$(OS_LIST),XZ-$(os))
 OpenSSL: $(foreach os,$(OS_LIST),OpenSSL-$(os))
+mpdecimal: $(foreach os,$(OS_LIST),mpdecimal-$(os))
 libFFI: $(foreach os,$(OS_LIST),libFFI-$(os))
 
 clean-BZip2: $(foreach os,$(OS_LIST),clean-BZip2-$(os))
 clean-XZ: $(foreach os,$(OS_LIST),clean-XZ-$(os))
 clean-OpenSSL: $(foreach os,$(OS_LIST),clean-OpenSSL-$(os))
+clean-mpdecimal: $(foreach os,$(OS_LIST),clean-mpdecimal-$(os))
 clean-libFFI: $(foreach os,$(OS_LIST),clean-libFFI-$(os))
 
 # Expand the build macro for every OS

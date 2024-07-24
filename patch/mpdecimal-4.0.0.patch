@@ -1,0 +1,21 @@
+diff -ur mpdecimal-4.0.0-orig/config.sub mpdecimal-4.0.0/config.sub
+--- mpdecimal-4.0.0-orig/config.sub	2024-01-10 08:25:00
++++ mpdecimal-4.0.0/config.sub	2024-07-24 13:16:35
+@@ -1127,7 +1127,7 @@
+ 	xscale-* | xscalee[bl]-*)
+ 		cpu=`echo "$cpu" | sed 's/^xscale/arm/'`
+ 		;;
+-	arm64-* | aarch64le-*)
++	arm64-* | arm64_32-* | aarch64le-*)
+ 		cpu=aarch64
+ 		;;
+ 
+@@ -1792,6 +1792,8 @@
+ 	os2-emx)
+ 		;;
+ 	*-eabi* | *-gnueabi*)
++		;;
++	ios*-simulator | tvos*-simulator | watchos*-simulator)
+ 		;;
+ 	none-coff* | none-elf*)
+ 		# None (no kernel, i.e. freestanding / bare metal),
