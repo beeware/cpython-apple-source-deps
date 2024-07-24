@@ -7,6 +7,7 @@ CPython build requires. This includes:
 * BZip2
 * XZ
 * libFFI
+* mpdecimal
 * OpenSSL 1.1
 * OpenSSL 3.0
 
@@ -19,7 +20,7 @@ The binaries support arm64 for iOS and appleTV devices, and arm64_32 for
 watchOS. They also supports device simulators on both x86_64 and M1 hardware.
 This should enable the code to run on:
 
-* iOS 12.0 or later, on:
+* iOS 13.0 or later, on:
     * iPhone (6s or later)
     * iPad (5th gen or later)
     * iPad Air (all models)
