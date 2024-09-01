@@ -48,7 +48,7 @@ jobs:
         make ${{ steps.build-vars.outputs.PACKAGE_NAME }}-${{ matrix.target }} $(echo "${{ steps.build-vars.outputs.PACKAGE_NAME }}" | tr 'a-z' 'A-Z')_VERSION=${{ steps.build-vars.outputs.PACKAGE_VERSION }} BUILD_NUMBER=${{ steps.build-vars.outputs.BUILD_NUMBER }}
 
     - name: Upload Build Artifact
-      uses: actions/upload-artifact@v4.3.6
+      uses: actions/upload-artifact@v4.4.0
       with:
         name: dist-${{ matrix.target }}
         path: dist
