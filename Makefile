@@ -45,7 +45,7 @@ XZ_VERSION=5.4.7
 # Preference is to use OpenSSL 3; however, Cryptography 3.4.8 (and
 # probably some other packages as well) only works with 1.1.1, so
 # we need to preserve the ability to build the older OpenSSL (for now...)
-OPENSSL_VERSION=3.0.14
+OPENSSL_VERSION=3.0.15
 # OPENSSL_VERSION=1.1.1w
 # The Series is the first 2 digits of the version number. (e.g., 1.1.1w -> 1.1)
 OPENSSL_SERIES=$(shell echo $(OPENSSL_VERSION) | grep -Eo "\d+\.\d+")
@@ -123,10 +123,13 @@ downloads/xz-$(XZ_VERSION).tar.gz:
 # Download original OpenSSL source code archive.
 downloads/openssl-$(OPENSSL_VERSION).tar.gz:
 	@echo ">>> Download OpenSSL sources"
+ifeq ($(OPENSSL_SERIES),1.1)
 	curl $(CURL_FLAGS) -o $@ \
-		https://openssl.org/source/$(notdir $@) \
-		|| curl $(CURL_FLAGS) -o $@ \
-			https://openssl.org/source/old/$(basename $(OPENSSL_VERSION))/$(notdir $@)
+		https://github.com/openssl/openssl/releases/download/OpenSSL_$(shell echo $(OPENSSL_VERSION) | sed "s/\./_/g")/$(notdir $@)
+else
+	curl $(CURL_FLAGS) -o $@ \
+		https://github.com/openssl/openssl/releases/download/openssl-$(OPENSSL_VERSION)/$(notdir $@)
+endif
 
 ###########################################################################
 # Setup: mpdecimal
