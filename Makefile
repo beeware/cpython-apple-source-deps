@@ -40,7 +40,7 @@ BUILD_NUMBER=custom
 
 BZIP2_VERSION=1.0.8
 
-XZ_VERSION=5.4.7
+XZ_VERSION=5.6.2
 
 # Preference is to use OpenSSL 3; however, Cryptography 3.4.8 (and
 # probably some other packages as well) only works with 1.1.1, so
@@ -237,7 +237,7 @@ $$(XZ_SRCDIR-$(target))/configure: downloads/xz-$(XZ_VERSION).tar.gz
 	mkdir -p $$(XZ_SRCDIR-$(target))
 	tar zxf $$< --strip-components 1 -C $$(XZ_SRCDIR-$(target))
 	# Patch the source to add support for new platforms
-	cd $$(XZ_SRCDIR-$(target)) && patch -p1 < $(PROJECT_DIR)/patch/xz-$(XZ_VERSION).patch
+	cd $$(XZ_SRCDIR-$(target)) && patch -p1 < $(PROJECT_DIR)/patch/xz.patch
 	# Touch the configure script to ensure that Make identifies it as up to date.
 	touch $$(XZ_SRCDIR-$(target))/configure
 
@@ -365,7 +365,7 @@ $$(MPDECIMAL_SRCDIR-$(target))/configure: downloads/mpdecimal-$(MPDECIMAL_VERSIO
 	mkdir -p $$(MPDECIMAL_SRCDIR-$(target))
 	tar zxf $$< --strip-components 1 -C $$(MPDECIMAL_SRCDIR-$(target))
 	# Patch the source to add support for new platforms
-	cd $$(MPDECIMAL_SRCDIR-$(target)) && patch -p1 < $(PROJECT_DIR)/patch/mpdecimal-$(MPDECIMAL_VERSION).patch
+	cd $$(MPDECIMAL_SRCDIR-$(target)) && patch -p1 < $(PROJECT_DIR)/patch/mpdecimal.patch
 	# Touch the configure script to ensure that Make identifies it as up to date.
 	touch $$(MPDECIMAL_SRCDIR-$(target))/configure
 
