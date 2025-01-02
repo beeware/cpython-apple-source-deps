@@ -40,7 +40,7 @@ BUILD_NUMBER=custom
 
 BZIP2_VERSION=1.0.8
 
-XZ_VERSION=5.6.2
+XZ_VERSION=5.6.3
 
 # Preference is to use OpenSSL 3; however, Cryptography 3.4.8 (and
 # probably some other packages as well) only works with 1.1.1, so
@@ -57,8 +57,8 @@ LIBFFI_VERSION=3.4.6
 CURL_FLAGS=--disable --fail --location --create-dirs --progress-bar
 
 # iOS targets
-TARGETS-iOS=iphonesimulator.x86_64 iphonesimulator.arm64 iphoneos.arm64
-VERSION_MIN-iOS=13.0
+TARGETS-iOS=iphonesimulator.x86_64 iphonesimulator.arm64 iphoneos.arm64 macosx.x86_64 macosx.arm64
+VERSION_MIN-iOS=14.2
 CFLAGS-iOS=-mios-version-min=$(VERSION_MIN-iOS)
 
 # tvOS targets
@@ -171,10 +171,12 @@ OS_LOWER-$(target)=$(shell echo $(os) | tr '[:upper:]' '[:lower:]')
 SDK-$(target)=$$(basename $(target))
 ARCH-$(target)=$$(subst .,,$$(suffix $(target)))
 
-ifeq ($$(findstring simulator,$$(SDK-$(target))),)
-TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))$$(VERSION_MIN-$(os))
-else
+ifneq ($$(findstring simulator,$$(SDK-$(target))),)
 TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))$$(VERSION_MIN-$(os))-simulator
+else ifneq ($$(findstring macosx,$$(SDK-$(target))),)
+TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-ios$$(VERSION_MIN-$(os))-macabi
+else
+TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))$$(VERSION_MIN-$(os))
 endif
 
 SDK_ROOT-$(target)=$$(shell xcrun --sdk $$(SDK-$(target)) --show-sdk-path)
@@ -251,7 +253,7 @@ $$(XZ_SRCDIR-$(target))/Makefile: $$(XZ_SRCDIR-$(target))/configure
 			LDFLAGS="$$(LDFLAGS-$(target))" \
 			--disable-shared \
 			--enable-static \
-			--host=$$(TARGET_TRIPLE-$(target)) \
+			--host=$$(subst -macabi,,$$(TARGET_TRIPLE-$(target))) \
 			--build=$(HOST_ARCH)-apple-darwin \
 			--prefix="$$(XZ_INSTALL-$(target))" \
 			2>&1 | tee -a ../xz-$(XZ_VERSION).config.log
@@ -380,7 +382,7 @@ $$(MPDECIMAL_SRCDIR-$(target))/Makefile: $$(MPDECIMAL_SRCDIR-$(target))/configur
 			LDFLAGS="$$(LDFLAGS-$(target))" \
 			--disable-shared \
 			--enable-static \
-			--host=$$(TARGET_TRIPLE-$(target)) \
+			--host=$$(subst -macabi,,$$(TARGET_TRIPLE-$(target))) \
 			--build=$(HOST_ARCH)-apple-darwin \
 			--prefix="$$(MPDECIMAL_INSTALL-$(target))" \
 			2>&1 | tee -a ../xz-$(MPDECIMAL_VERSION).config.log
@@ -550,9 +552,11 @@ $$(LIBFFI_SRCDIR-$(os))/darwin_common/include/ffi.h: downloads/libffi-$(LIBFFI_V
 	@echo ">>> Unpack and configure libFFI sources on $(os)"
 	mkdir -p $$(LIBFFI_SRCDIR-$(os))
 	tar zxf $$< --strip-components 1 -C $$(LIBFFI_SRCDIR-$(os))
+	# Patch the source to add support for maccatalyst/remove i386+armv7
+	cd $$(LIBFFI_SRCDIR-$(os)) && patch -p1 < $(PROJECT_DIR)/patch/libffi.patch
 	# Configure the build
 	cd $$(LIBFFI_SRCDIR-$(os)) && \
-		python3 generate-darwin-source-and-headers.py --only-$(shell echo $(os) | tr '[:upper:]' '[:lower:]') \
+		python3 generate-darwin-source-and-headers.py --only-$(shell echo $(os) | tr '[:upper:]' '[:lower:]') --disable-i386 --disable-armv7 \
 		2>&1 | tee -a ../libffi-$(LIBFFI_VERSION).config.log
 
 ###########################################################################
