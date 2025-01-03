@@ -57,7 +57,7 @@ LIBFFI_VERSION=3.4.6
 CURL_FLAGS=--disable --fail --location --create-dirs --progress-bar
 
 # iOS targets
-TARGETS-iOS=iphonesimulator.x86_64 iphonesimulator.arm64 iphoneos.arm64 macosx.x86_64 macosx.arm64
+TARGETS-iOS=iphonesimulator.x86_64 iphonesimulator.arm64 iphoneos.arm64 maccatalyst.x86_64 maccatalyst.arm64
 VERSION_MIN-iOS=14.2
 CFLAGS-iOS=-mios-version-min=$(VERSION_MIN-iOS)
 
@@ -168,12 +168,12 @@ os=$2
 OS_LOWER-$(target)=$(shell echo $(os) | tr '[:upper:]' '[:lower:]')
 
 # $(target) can be broken up into is composed of $(SDK).$(ARCH)
-SDK-$(target)=$$(basename $(target))
+SDK-$(target)=$$(subst maccatalyst,macosx,$$(basename $(target)))
 ARCH-$(target)=$$(subst .,,$$(suffix $(target)))
 
 ifneq ($$(findstring simulator,$$(SDK-$(target))),)
 TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))$$(VERSION_MIN-$(os))-simulator
-else ifneq ($$(findstring macosx,$$(SDK-$(target))),)
+else ifneq ($$(findstring maccatalyst,$$(target)),)
 TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-ios$$(VERSION_MIN-$(os))-macabi
 else
 TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))$$(VERSION_MIN-$(os))
