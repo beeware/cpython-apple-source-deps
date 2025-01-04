@@ -1,6 +1,39 @@
-diff -ru libffi-3.4.6-orig/generate-darwin-source-and-headers.py libffi-3.4.6/generate-darwin-source-and-headers.py
+diff -ur libffi-3.4.6-orig/config.sub libffi-3.4.6/config.sub
+--- libffi-3.4.6-orig/config.sub	2023-10-21 13:41:22
++++ libffi-3.4.6/config.sub	2025-01-04 11:15:10
+@@ -127,6 +127,8 @@
+ EOF
+ IFS=$saved_IFS
+ 
++abi=""
++
+ # Separate into logical components for further validation
+ case $1 in
+ 	*-*-*-*-*)
+@@ -1324,6 +1326,11 @@
+ 		kernel=nto
+ 		os=`echo "$basic_os" | sed -e 's|nto-qnx|qnx|'`
+ 		;;
++	ios-macabi)
++		kernel=
++		os=ios
++		abi="-macabi"
++		;;
+ 	*-*)
+ 		# shellcheck disable=SC2162
+ 		saved_IFS=$IFS
+@@ -1881,7 +1888,7 @@
+ 		;;
+ esac
+ 
+-echo "$cpu-$vendor-${kernel:+$kernel-}$os"
++echo "$cpu-$vendor-${kernel:+$kernel-}$os${abi}"
+ exit
+ 
+ # Local variables:
+diff -ur libffi-3.4.6-orig/generate-darwin-source-and-headers.py libffi-3.4.6/generate-darwin-source-and-headers.py
 --- libffi-3.4.6-orig/generate-darwin-source-and-headers.py	2023-10-21 13:41:22
-+++ libffi-3.4.6/generate-darwin-source-and-headers.py	2025-01-02 08:50:53
++++ libffi-3.4.6/generate-darwin-source-and-headers.py	2025-01-04 09:18:08
 @@ -8,7 +8,7 @@
  
  
@@ -15,7 +48,7 @@ diff -ru libffi-3.4.6-orig/generate-darwin-source-and-headers.py libffi-3.4.6/ge
      version_min = '-mwatchos-version-min=4.0'
  
 +class macosx_x86_64_platform(x86_64_platform):
-+    target = 'x86_64-apple-ios'
++    target = 'x86_64-apple-ios-macabi'
 +    directory = 'darwin_ios'
 +    sdk = 'macosx'
 +    version_min = '-mios-version-min=14.2'
@@ -23,7 +56,7 @@ diff -ru libffi-3.4.6-orig/generate-darwin-source-and-headers.py libffi-3.4.6/ge
  
 +
 +class macosx_arm64_platform(arm64_platform):
-+    target = 'arm64-apple-ios'
++    target = 'arm64-apple-ios-macabi'
 +    directory = 'darwin_ios'
 +    sdk = 'macosx'
 +    version_min = '-mios-version-min=14.2'

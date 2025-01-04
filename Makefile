@@ -173,7 +173,7 @@ ARCH-$(target)=$$(subst .,,$$(suffix $(target)))
 
 ifneq ($$(findstring simulator,$$(SDK-$(target))),)
 TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))$$(VERSION_MIN-$(os))-simulator
-else ifneq ($$(findstring maccatalyst,$$(target)),)
+else ifneq ($$(findstring macosx,$$(target)),)
 TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-ios$$(VERSION_MIN-$(os))-macabi
 else
 TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))$$(VERSION_MIN-$(os))
