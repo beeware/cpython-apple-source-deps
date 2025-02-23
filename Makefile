@@ -173,7 +173,7 @@ ARCH-$(target)=$$(subst .,,$$(suffix $(target)))
 
 ifneq ($$(findstring simulator,$$(SDK-$(target))),)
 TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))$$(VERSION_MIN-$(os))-simulator
-else ifneq ($$(findstring macosx,$$(target)),)
+else ifneq ($$(findstring maccatalyst,$$(target)),)
 TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-ios$$(VERSION_MIN-$(os))-macabi
 else
 TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))$$(VERSION_MIN-$(os))
@@ -253,7 +253,7 @@ $$(XZ_SRCDIR-$(target))/Makefile: $$(XZ_SRCDIR-$(target))/configure
 			LDFLAGS="$$(LDFLAGS-$(target))" \
 			--disable-shared \
 			--enable-static \
-			--host=$$(subst -macabi,,$$(TARGET_TRIPLE-$(target))) \
+			--host=$$(TARGET_TRIPLE-$(target)) \
 			--build=$(HOST_ARCH)-apple-darwin \
 			--prefix="$$(XZ_INSTALL-$(target))" \
 			2>&1 | tee -a ../xz-$(XZ_VERSION).config.log
@@ -382,7 +382,7 @@ $$(MPDECIMAL_SRCDIR-$(target))/Makefile: $$(MPDECIMAL_SRCDIR-$(target))/configur
 			LDFLAGS="$$(LDFLAGS-$(target))" \
 			--disable-shared \
 			--enable-static \
-			--host=$$(subst -macabi,,$$(TARGET_TRIPLE-$(target))) \
+			--host=$$(TARGET_TRIPLE-$(target)) \
 			--build=$(HOST_ARCH)-apple-darwin \
 			--prefix="$$(MPDECIMAL_INSTALL-$(target))" \
 			2>&1 | tee -a ../xz-$(MPDECIMAL_VERSION).config.log

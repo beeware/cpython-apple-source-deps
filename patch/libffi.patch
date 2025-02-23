@@ -1,39 +1,52 @@
-diff -ur libffi-3.4.6-orig/config.sub libffi-3.4.6/config.sub
---- libffi-3.4.6-orig/config.sub	2023-10-21 13:41:22
-+++ libffi-3.4.6/config.sub	2025-01-04 11:15:10
-@@ -127,6 +127,8 @@
- EOF
- IFS=$saved_IFS
+diff -Naur libffi-3.4.7-orig/config.sub libffi-3.4.7/config.sub
+--- libffi-3.4.7-orig/config.sub	2024-12-13 10:38:19
++++ libffi-3.4.7/config.sub	2025-02-23 09:47:29
+@@ -4,6 +4,7 @@
  
-+abi=""
-+
- # Separate into logical components for further validation
- case $1 in
- 	*-*-*-*-*)
-@@ -1324,6 +1326,11 @@
- 		kernel=nto
- 		os=`echo "$basic_os" | sed -e 's|nto-qnx|qnx|'`
+ # shellcheck disable=SC2006,SC2268 # see below for rationale
+ 
++# Patched 2024-02-03 to include support for arm64_32 and iOS/tvOS/watchOS simulators
+ timestamp='2024-01-01'
+ 
+ # This file is free software; you can redistribute it and/or modify it
+@@ -1127,7 +1128,10 @@
+ 	xscale-* | xscalee[bl]-*)
+ 		cpu=`echo "$cpu" | sed 's/^xscale/arm/'`
  		;;
-+	ios-macabi)
-+		kernel=
-+		os=ios
-+		abi="-macabi"
+-	arm64-* | arm64_32-* | aarch64le-*)
++	arm64-apple)
++		cpu=arm64
 +		;;
- 	*-*)
- 		# shellcheck disable=SC2162
- 		saved_IFS=$IFS
-@@ -1881,7 +1888,7 @@
++	arm64-* | aarch64le-* | arm64_32-*)
+ 		cpu=aarch64
  		;;
- esac
  
--echo "$cpu-$vendor-${kernel:+$kernel-}$os"
-+echo "$cpu-$vendor-${kernel:+$kernel-}$os${abi}"
- exit
- 
- # Local variables:
-diff -ur libffi-3.4.6-orig/generate-darwin-source-and-headers.py libffi-3.4.6/generate-darwin-source-and-headers.py
---- libffi-3.4.6-orig/generate-darwin-source-and-headers.py	2023-10-21 13:41:22
-+++ libffi-3.4.6/generate-darwin-source-and-headers.py	2025-01-04 09:18:08
+@@ -1768,7 +1772,7 @@
+ 	     | onefs* | tirtos* | phoenix* | fuchsia* | redox* | bme* \
+ 	     | midnightbsd* | amdhsa* | unleashed* | emscripten* | wasi* \
+ 	     | nsk* | powerunix* | genode* | zvmoe* | qnx* | emx* | zephyr* \
+-	     | fiwix* | mlibc* | cos* | mbr* | ironclad* )
++	     | fiwix* | mlibc* | cos* | mbr* | ironclad* | macabi)
+ 		;;
+ 	# This one is extra strict with allowed versions
+ 	sco3.2v2 | sco3.2v[4-9]* | sco5v6*)
+@@ -1864,9 +1868,11 @@
+ 		;;
+ 	os2-emx-)
+ 		;;
+-	ios*-simulator* | tvos*-simulator* | watchos*-simulator*)
+-		;;	
+ 	*-eabi*- | *-gnueabi*-)
++		;;
++	ios*-simulator- | tvos*-simulator- | watchos*-simulator- )
++		;;
++	ios*-macabi- )
+ 		;;
+ 	none--*)
+ 		# None (no kernel, i.e. freestanding / bare metal),
+diff -Naur libffi-3.4.7-orig/generate-darwin-source-and-headers.py libffi-3.4.7/generate-darwin-source-and-headers.py
+--- libffi-3.4.7-orig/generate-darwin-source-and-headers.py	2024-06-01 18:42:02
++++ libffi-3.4.7/generate-darwin-source-and-headers.py	2025-02-23 09:40:26
 @@ -8,7 +8,7 @@
  
  
