@@ -16,12 +16,11 @@ concurrency:
 
 jobs:
   config:
-    name: "${{ matrix.package }}: ${{ matrix.target }}"
+    name: ${{ matrix.target }}
     runs-on: macOS-latest
     strategy:
       matrix:
         target: [ "iOS", "tvOS", "watchOS" ]
-        package: [ "BZip2", "XZ", "libFFI", "mpdecimal", "OpenSSL" ]
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -31,14 +30,29 @@ jobs:
         with:
           python-version: "3.X"
 
-      - name: Build ${{ matrix.package }} for ${{ matrix.target }}
+      - name: Build BZip2 for ${{ matrix.target }}
         run: |
-          # Do the build for the requested target.
-          make ${{ matrix.package }}-${{ matrix.target }}
+          make BZip2-${{ matrix.target }}
+
+      - name: Build XZ for ${{ matrix.target }}
+        run: |
+          make XZ-${{ matrix.target }}
+
+      - name: Build libFFI for ${{ matrix.target }}
+        run: |
+          make libFFI-${{ matrix.target }}
+
+      - name: Build mpdecimal for ${{ matrix.target }}
+        run: |
+          make mpdecimal-${{ matrix.target }}
+
+      - name: Build OpenSSL for ${{ matrix.target }}
+        run: |
+          make OpenSSL-${{ matrix.target }}
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4.6.0
         with:
-          name: dist-${{ matrix.package }}-${{ matrix.target }}
+          name: dist-${{ matrix.target }}
           path: dist
           if-no-files-found: error
