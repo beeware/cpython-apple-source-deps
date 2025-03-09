@@ -1,0 +1,44 @@
+name: CI
+on:
+  pull_request:
+
+env:
+  FORCE_COLOR: "1"
+
+defaults:
+  run:
+    shell: bash
+
+# Cancel active CI runs for a PR before starting another run
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  config:
+    name: "${{ matrix.package }}: ${{ matrix.target }}"
+    runs-on: macOS-latest
+    strategy:
+      matrix:
+        target: [ "iOS", "tvOS", "watchOS" ]
+        package: [ "BZip2", "XZ", "libFFI", "mpdecimal", "OpenSSL" ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.4.0
+        with:
+          python-version: "3.X"
+
+      - name: Build ${{ matrix.package }} for ${{ matrix.target }}
+        run: |
+          # Do the build for the requested target.
+          make ${{ matrix.package }}-${{ matrix.target }}
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4.6.0
+        with:
+          name: dist-${{ matrix.package }}-${{ matrix.target }}
+          path: dist
+          if-no-files-found: error
