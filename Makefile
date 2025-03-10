@@ -4,32 +4,38 @@
 # - iOS             - build everything for iOS
 # - tvOS            - build everything for tvOS
 # - watchOS         - build everything for watchOS
+# - MacCatalyst     - build everything for MacCatalyst
 # - BZip2           - build BZip2 for all platforms
 # - BZip2-iOS       - build BZip2 for iOS
 # - BZip2-tvOS      - build BZip2 for tvOS
 # - BZip2-watchOS   - build BZip2 for watchOS
+# - BZip2-MacCatalyst   - build BZip2 for MacCatalyst
 # - XZ              - build XZ for all platforms
 # - XZ-iOS          - build XZ for iOS
 # - XZ-tvOS         - build XZ for tvOS
 # - XZ-watchOS      - build XZ for watchOS
+# - XZ-MacCatalyst      - build XZ for MacCatalyst
 # - OpenSSL         - build OpenSSL for all platforms
 # - OpenSSL-iOS     - build OpenSSL for iOS
 # - OpenSSL-tvOS    - build OpenSSL for tvOS
 # - OpenSSL-watchOS - build OpenSSL for watchOS
+# - OpenSSL-MacCatalyst - build OpenSSL for MacCatalyst
 # - mpdecimal         - build mpdecimal for all platforms
 # - mpdecimal-iOS     - build mpdecimal for iOS
 # - mpdecimal-tvOS    - build mpdecimal for tvOS
 # - mpdecimal-watchOS - build mpdecimal for watchOS
+# - mpdecimal-MacCatalyst - build mpdecimal for MacCatalyst
 # - libFFI-iOS      - build libFFI for iOS
 # - libFFI-tvOS     - build libFFI for tvOS
 # - libFFI-watchOS  - build libFFI for watchOS
+# - libFFI-MacCatalyst  - build libFFI for MacCatalyst
 
 # Current directory
 PROJECT_DIR=$(shell pwd)
 
 # Supported OS and products
 PRODUCTS=BZip2 XZ OpenSSL libFFI
-OS_LIST=iOS tvOS watchOS
+OS_LIST=iOS tvOS watchOS MacCatalyst
 
 # The versions to compile by default.
 # In practice, these should be
@@ -60,6 +66,11 @@ CURL_FLAGS=--disable --fail --location --create-dirs --progress-bar
 TARGETS-iOS=iphonesimulator.x86_64 iphonesimulator.arm64 iphoneos.arm64
 VERSION_MIN-iOS=13.0
 CFLAGS-iOS=-mios-version-min=$(VERSION_MIN-iOS)
+
+# MacCatalyst targets
+TARGETS-MacCatalyst=maccatalyst.x86_64 maccatalyst.arm64
+VERSION_MIN-MacCatalyst=14.2
+CFLAGS-MacCatalyst=-mios-version-min=$(VERSION_MIN-MacCatalyst)
 
 # tvOS targets
 TARGETS-tvOS=appletvsimulator.x86_64 appletvsimulator.arm64 appletvos.arm64
@@ -168,13 +179,15 @@ os=$2
 OS_LOWER-$(target)=$(shell echo $(os) | tr '[:upper:]' '[:lower:]')
 
 # $(target) can be broken up into is composed of $(SDK).$(ARCH)
-SDK-$(target)=$$(basename $(target))
+SDK-$(target)=$$(subst maccatalyst,macosx,$$(basename $(target)))
 ARCH-$(target)=$$(subst .,,$$(suffix $(target)))
 
-ifeq ($$(findstring simulator,$$(SDK-$(target))),)
-TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))$$(VERSION_MIN-$(os))
-else
+ifneq ($$(findstring simulator,$$(SDK-$(target))),)
 TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))$$(VERSION_MIN-$(os))-simulator
+else ifneq ($$(findstring maccatalyst,$$(target)),)
+TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-ios$$(VERSION_MIN-$(os))-macabi
+else
+TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))$$(VERSION_MIN-$(os))
 endif
 
 SDK_ROOT-$(target)=$$(shell xcrun --sdk $$(SDK-$(target)) --show-sdk-path)
@@ -550,9 +563,11 @@ $$(LIBFFI_SRCDIR-$(os))/darwin_common/include/ffi.h: downloads/libffi-$(LIBFFI_V
 	@echo ">>> Unpack and configure libFFI sources on $(os)"
 	mkdir -p $$(LIBFFI_SRCDIR-$(os))
 	tar zxf $$< --strip-components 1 -C $$(LIBFFI_SRCDIR-$(os))
+	# Patch the source to add support for maccatalyst/remove i386+armv7
+	cd $$(LIBFFI_SRCDIR-$(os)) && patch -p1 < $(PROJECT_DIR)/patch/libffi.patch
 	# Configure the build
 	cd $$(LIBFFI_SRCDIR-$(os)) && \
-		python3 generate-darwin-source-and-headers.py --only-$(shell echo $(os) | tr '[:upper:]' '[:lower:]') \
+		python3 generate-darwin-source-and-headers.py --only-$(shell echo $(os) | tr '[:upper:]' '[:lower:]') --disable-i386 --disable-armv7 \
 		2>&1 | tee -a ../libffi-$(LIBFFI_VERSION).config.log
 
 ###########################################################################
