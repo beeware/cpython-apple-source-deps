@@ -19,12 +19,12 @@
  		;;
  	# This one is extra strict with allowed versions
  	sco3.2v2 | sco3.2v[4-9]* | sco5v6*)
-@@ -2249,6 +2250,8 @@
+@@ -2248,6 +2249,8 @@
+ 	rtmk-nova-)
  		;;
  	*-eabi*- | *-gnueabi*-)
- 		;;
-+	ios*-simulator- | tvos*-simulator- | watchos*-simulator- | ios*-macabi-)
 +		;;
++	ios*-simulator- | tvos*-simulator- | watchos*-simulator- | ios*-macabi-)
+ 		;;
  	none--*)
  		# None (no kernel, i.e. freestanding / bare metal),
- 		# can be paired with an machine code file format
