@@ -1,6 +1,6 @@
 diff -Naur libffi-3.4.7-orig/config.sub libffi-3.4.7/config.sub
 --- libffi-3.4.7-orig/config.sub	2024-12-13 10:38:19
-+++ libffi-3.4.7/config.sub	2025-03-09 14:09:03
++++ libffi-3.4.7/config.sub	2025-03-11 19:17:04
 @@ -1768,7 +1768,7 @@
  	     | onefs* | tirtos* | phoenix* | fuchsia* | redox* | bme* \
  	     | midnightbsd* | amdhsa* | unleashed* | emscripten* | wasi* \
@@ -10,18 +10,17 @@ diff -Naur libffi-3.4.7-orig/config.sub libffi-3.4.7/config.sub
  		;;
  	# This one is extra strict with allowed versions
  	sco3.2v2 | sco3.2v[4-9]* | sco5v6*)
-@@ -1865,8 +1865,10 @@
+@@ -1864,8 +1864,8 @@
+ 		;;
  	os2-emx-)
  		;;
- 	ios*-simulator* | tvos*-simulator* | watchos*-simulator*)
+-	ios*-simulator* | tvos*-simulator* | watchos*-simulator*)
 -		;;	
++	ios*-simulator* | tvos*-simulator* | watchos*-simulator* | ios*macabi*)
 +		;;
  	*-eabi*- | *-gnueabi*-)
-+		;;
-+	ios*-macabi- )
  		;;
  	none--*)
- 		# None (no kernel, i.e. freestanding / bare metal),
 diff -Naur libffi-3.4.7-orig/generate-darwin-source-and-headers.py libffi-3.4.7/generate-darwin-source-and-headers.py
 --- libffi-3.4.7-orig/generate-darwin-source-and-headers.py	2024-06-01 18:42:02
 +++ libffi-3.4.7/generate-darwin-source-and-headers.py	2025-03-09 14:29:38
