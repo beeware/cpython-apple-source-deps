@@ -1,6 +1,6 @@
-diff -ur mpdecimal-4.0.0-orig/config.sub mpdecimal-4.0.0/config.sub
---- mpdecimal-4.0.0-orig/config.sub	2024-01-10 08:25:00
-+++ mpdecimal-4.0.0/config.sub	2024-07-24 13:16:35
+diff -Naur --mi mpdecimal-4.0.0-orig/config.sub mpdecimal-4.0.0/config.sub
+--- mpdecimal-4.0.0-orig/config.sub	2024-01-10 00:25:00
++++ mpdecimal-4.0.0/config.sub	2025-03-11 19:35:50
 @@ -1127,7 +1127,7 @@
  	xscale-* | xscalee[bl]-*)
  		cpu=`echo "$cpu" | sed 's/^xscale/arm/'`
@@ -10,12 +10,21 @@ diff -ur mpdecimal-4.0.0-orig/config.sub mpdecimal-4.0.0/config.sub
  		cpu=aarch64
  		;;
  
+@@ -1736,7 +1736,7 @@
+ 	     | onefs* | tirtos* | phoenix* | fuchsia* | redox* | bme* \
+ 	     | midnightbsd* | amdhsa* | unleashed* | emscripten* | wasi* \
+ 	     | nsk* | powerunix* | genode* | zvmoe* | qnx* | emx* | zephyr* \
+-	     | fiwix* | mlibc* | cos* | mbr* )
++	     | fiwix* | mlibc* | cos* | mbr* | macabi )
+ 		;;
+ 	# This one is extra strict with allowed versions
+ 	sco3.2v2 | sco3.2v[4-9]* | sco5v6*)
 @@ -1792,6 +1792,8 @@
  	os2-emx)
  		;;
  	*-eabi* | *-gnueabi*)
 +		;;
-+	ios*-simulator | tvos*-simulator | watchos*-simulator)
++	ios*-simulator | tvos*-simulator | watchos*-simulator | ios*-macabi)
  		;;
  	none-coff* | none-elf*)
  		# None (no kernel, i.e. freestanding / bare metal),
