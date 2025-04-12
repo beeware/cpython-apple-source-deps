@@ -1,0 +1,94 @@
+diff -ur libffi-3.4.7 2/config.sub libffi-3.4.7/config.sub
+--- libffi-3.4.7 2/config.sub	2024-12-13 04:38:19
++++ libffi-3.4.7/config.sub	2025-04-12 17:44:40
+@@ -1742,7 +1742,7 @@
+ 	     | hpux* | unos* | osf* | luna* | dgux* | auroraux* | solaris* \
+ 	     | sym* |  plan9* | psp* | sim* | xray* | os68k* | v88r* \
+ 	     | hiux* | abug | nacl* | netware* | windows* \
+-	     | os9* | macos* | osx* | ios* | tvos* | watchos* \
++	     | os9* | macos* | osx* | ios* | tvos* | watchos* | xros* \
+ 	     | mpw* | magic* | mmixware* | mon960* | lnews* \
+ 	     | amigaos* | amigados* | msdos* | newsos* | unicos* | aof* \
+ 	     | aos* | aros* | cloudabi* | sortix* | twizzler* \
+@@ -1864,7 +1864,7 @@
+ 		;;
+ 	os2-emx-)
+ 		;;
+-	ios*-simulator* | tvos*-simulator* | watchos*-simulator*)
++	ios*-simulator* | tvos*-simulator* | watchos*-simulator* | xros*-simulator*)
+ 		;;	
+ 	*-eabi*- | *-gnueabi*-)
+ 		;;
+diff -ur libffi-3.4.7 2/generate-darwin-source-and-headers.py libffi-3.4.7/generate-darwin-source-and-headers.py
+--- libffi-3.4.7 2/generate-darwin-source-and-headers.py	2024-06-01 12:42:02
++++ libffi-3.4.7/generate-darwin-source-and-headers.py	2025-04-12 18:02:51
+@@ -152,8 +152,22 @@
+     sdk = 'watchos'
+     arch = 'arm64_32'
+     version_min = '-mwatchos-version-min=4.0'
++    
++class xros_simulator_arm64_platform(arm64_platform):
++    target = 'arm64-apple-xros-simulator'
++    directory = 'darwin_xros'
++    sdk = 'xrsimulator'
++    version_min = ''
+ 
+ 
++class xros_device_arm64_platform(arm64_platform):
++    target = 'arm64-apple-xros'
++    directory = 'darwin_xros'
++    sdk = 'xros'
++    arch = 'arm64'
++    version_min = ''
++
++
+ def mkdir_p(path):
+     try:
+         os.makedirs(path)
+@@ -243,6 +257,7 @@
+     generate_ios=True,
+     generate_tvos=True,
+     generate_watchos=True,
++    generate_xros=True
+ ):
+     copy_files('src', 'darwin_common/src', pattern='*.c')
+     copy_files('include', 'darwin_common/include', pattern='*.h')
+@@ -266,6 +281,9 @@
+         copy_src_platform_files(watchos_simulator_arm64_platform)
+         copy_src_platform_files(watchos_device_armv7k_platform)
+         copy_src_platform_files(watchos_device_arm64_32_platform)
++    if generate_xros:
++        copy_src_platform_files(xros_simulator_arm64_platform)
++        copy_src_platform_files(xros_device_arm64_platform)
+ 
+     platform_headers = collections.defaultdict(set)
+ 
+@@ -288,6 +306,9 @@
+         build_target(watchos_simulator_arm64_platform, platform_headers)
+         build_target(watchos_device_armv7k_platform, platform_headers)
+         build_target(watchos_device_arm64_32_platform, platform_headers)
++    if generate_xros:
++        build_target(xros_simulator_arm64_platform, platform_headers)
++        build_target(xros_device_arm64_platform, platform_headers)
+ 
+     mkdir_p('darwin_common/include')
+     for header_name, tag_tuples in platform_headers.items():
+@@ -302,11 +323,13 @@
+     parser.add_argument('--only-osx', action='store_true', default=False)
+     parser.add_argument('--only-tvos', action='store_true', default=False)
+     parser.add_argument('--only-watchos', action='store_true', default=False)
++    parser.add_argument('--only-xros', action='store_true', default=False)
+     args = parser.parse_args()
+ 
+     generate_source_and_headers(
+-        generate_osx=not args.only_ios and not args.only_tvos and not args.only_watchos,
+-        generate_ios=not args.only_osx and not args.only_tvos and not args.only_watchos,
+-        generate_tvos=not args.only_ios and not args.only_osx and not args.only_watchos,
+-        generate_watchos=not args.only_ios and not args.only_osx and not args.only_tvos,
++        generate_osx=not args.only_ios and not args.only_tvos and not args.only_watchos and not args.only_xros,
++        generate_ios=not args.only_osx and not args.only_tvos and not args.only_watchos and not args.only_xros,
++        generate_tvos=not args.only_ios and not args.only_osx and not args.only_watchos and not args.only_xros,
++        generate_watchos=not args.only_ios and not args.only_osx and not args.only_tvos and not args.only_xros,
++        generate_xros=not args.only_ios and not args.only_osx and not args.only_tvos and not args.only_watchos,
+     )
+

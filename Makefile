@@ -4,32 +4,38 @@
 # - iOS             - build everything for iOS
 # - tvOS            - build everything for tvOS
 # - watchOS         - build everything for watchOS
+# - xrOS            - build everything for xrOS
 # - BZip2           - build BZip2 for all platforms
 # - BZip2-iOS       - build BZip2 for iOS
 # - BZip2-tvOS      - build BZip2 for tvOS
 # - BZip2-watchOS   - build BZip2 for watchOS
+# - BZip2-xrOS      - build BZip2 for xrOS
 # - XZ              - build XZ for all platforms
 # - XZ-iOS          - build XZ for iOS
 # - XZ-tvOS         - build XZ for tvOS
 # - XZ-watchOS      - build XZ for watchOS
+# - XZ-xrOS         - build XZ for xrOS
 # - OpenSSL         - build OpenSSL for all platforms
 # - OpenSSL-iOS     - build OpenSSL for iOS
 # - OpenSSL-tvOS    - build OpenSSL for tvOS
 # - OpenSSL-watchOS - build OpenSSL for watchOS
+# - OpenSSL-xrOS    - build OpenSSL for xrOS
 # - mpdecimal         - build mpdecimal for all platforms
 # - mpdecimal-iOS     - build mpdecimal for iOS
 # - mpdecimal-tvOS    - build mpdecimal for tvOS
 # - mpdecimal-watchOS - build mpdecimal for watchOS
+# - mpdecimal-xrOS    - build mpdecimal for xrOS
 # - libFFI-iOS      - build libFFI for iOS
 # - libFFI-tvOS     - build libFFI for tvOS
 # - libFFI-watchOS  - build libFFI for watchOS
+# - libFFI-xrOS     - build libFFI for xrOS
 
 # Current directory
 PROJECT_DIR=$(shell pwd)
 
 # Supported OS and products
 PRODUCTS=BZip2 XZ OpenSSL libFFI
-OS_LIST=iOS tvOS watchOS
+OS_LIST=iOS tvOS watchOS xrOS
 
 # The versions to compile by default.
 # In practice, these should be
@@ -72,6 +78,12 @@ TARGETS-watchOS=watchsimulator.x86_64 watchsimulator.arm64 watchos.arm64_32
 VERSION_MIN-watchOS=4.0
 CFLAGS-watchOS=-mwatchos-version-min=$(VERSION_MIN-watchOS)
 PYTHON_CONFIGURE-watchOS=ac_cv_func_sigaltstack=no
+
+# xrOS targets
+TARGETS-xrOS=xrsimulator.arm64 xros.arm64
+VERSION_MIN-xrOS=4.0
+# I don't know the version-min flag for xros, seems to work fine without it
+PYTHON_CONFIGURE-xrOS=ac_cv_func_sigaltstack=no
 
 # The architecture of the machine doing the build
 HOST_ARCH=$(shell uname -m)
@@ -550,6 +562,7 @@ $$(LIBFFI_SRCDIR-$(os))/darwin_common/include/ffi.h: downloads/libffi-$(LIBFFI_V
 	@echo ">>> Unpack and configure libFFI sources on $(os)"
 	mkdir -p $$(LIBFFI_SRCDIR-$(os))
 	tar zxf $$< --strip-components 1 -C $$(LIBFFI_SRCDIR-$(os))
+	cd $$(LIBFFI_SRCDIR-$(os)) && patch -p1 < $(PROJECT_DIR)/patch/libffi.patch
 	# Configure the build
 	cd $$(LIBFFI_SRCDIR-$(os)) && \
 		python3 generate-darwin-source-and-headers.py --only-$(shell echo $(os) | tr '[:upper:]' '[:lower:]') \

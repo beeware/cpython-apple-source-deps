@@ -10,12 +10,16 @@ diff -ru xz-5.4.7-orig/build-aux/config.sub xz-5.4.7/build-aux/config.sub
  		cpu=aarch64
  		;;
  
+@@ -2150,2 +2150,3 @@
+ 	| xray* \
++	| xros* \
+ 	| zephyr* \
 @@ -1865,6 +1865,8 @@
  	os2-emx-)
  		;;
  	*-eabi*- | *-gnueabi*-)
 +		;;
-+	ios*-simulator- | tvos*-simulator- | watchos*-simulator- )
++	ios*-simulator- | tvos*-simulator- | watchos*-simulator- | xros*-simulator-)
  		;;
  	none--*)
  		# None (no kernel, i.e. freestanding / bare metal),
