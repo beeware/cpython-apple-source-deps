@@ -13,14 +13,14 @@ diff -ur mpdecimal-4.0.0-orig/config.sub mpdecimal-4.0.0/config.sub
 @@ -1713,3 +1713,3 @@
  	     | hiux* | abug | nacl* | netware* | windows* \
 -	     | os9* | macos* | osx* | ios* | tvos* | watchos* \
-+	     | os9* | macos* | osx* | ios* | tvos* | watchos* | xros* | visionos* \
++	     | os9* | macos* | osx* | ios* | tvos* | watchos* | xros* \
  	     | mpw* | magic* | mmixware* | mon960* | lnews* \
 @@ -1792,6 +1792,8 @@
  	os2-emx)
  		;;
  	*-eabi* | *-gnueabi*)
 +		;;
-+	ios*-simulator | tvos*-simulator | watchos*-simulator | xros*-simulator | visionos*-simulator)
++	ios*-simulator | tvos*-simulator | watchos*-simulator | xros*-simulator)
  		;;
  	none-coff* | none-elf*)
  		# None (no kernel, i.e. freestanding / bare metal),

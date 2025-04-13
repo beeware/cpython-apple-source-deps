@@ -6,7 +6,7 @@ diff -ur libffi-3.4.7 2/config.sub libffi-3.4.7/config.sub
  	     | sym* |  plan9* | psp* | sim* | xray* | os68k* | v88r* \
  	     | hiux* | abug | nacl* | netware* | windows* \
 -	     | os9* | macos* | osx* | ios* | tvos* | watchos* \
-+	     | os9* | macos* | osx* | ios* | tvos* | watchos* | xros* | visionos* \
++	     | os9* | macos* | osx* | ios* | tvos* | watchos* | xros* \
  	     | mpw* | magic* | mmixware* | mon960* | lnews* \
  	     | amigaos* | amigados* | msdos* | newsos* | unicos* | aof* \
  	     | aos* | aros* | cloudabi* | sortix* | twizzler* \
@@ -15,7 +15,7 @@ diff -ur libffi-3.4.7 2/config.sub libffi-3.4.7/config.sub
  	os2-emx-)
  		;;
 -	ios*-simulator* | tvos*-simulator* | watchos*-simulator*)
-+	ios*-simulator* | tvos*-simulator* | watchos*-simulator* | xros*-simulator* | visionos*-simulator*)
++	ios*-simulator* | tvos*-simulator* | watchos*-simulator* | xros*-simulator*)
  		;;	
  	*-eabi*- | *-gnueabi*-)
  		;;
@@ -28,15 +28,15 @@ diff -ur libffi-3.4.7 2/generate-darwin-source-and-headers.py libffi-3.4.7/gener
      version_min = '-mwatchos-version-min=4.0'
 +    
 +class visionos_simulator_arm64_platform(arm64_platform):
-+    target = 'arm64-apple-visionos-simulator'
-+    directory = 'darwin_visionos'
++    target = 'arm64-apple-xros2.0-simulator'
++    directory = 'darwin_xros'
 +    sdk = 'xrsimulator'
 +    version_min = ''
  
  
 +class visionos_device_arm64_platform(arm64_platform):
-+    target = 'arm64-apple-visionos'
-+    directory = 'darwin_visionos'
++    target = 'arm64-apple-xros2.0'
++    directory = 'darwin_xros'
 +    sdk = 'xros'
 +    arch = 'arm64'
 +    version_min = ''

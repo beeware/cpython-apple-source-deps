@@ -1,34 +1,34 @@
 #
 # Useful targets:
-# - all             - build everything
-# - iOS             - build everything for iOS
-# - tvOS            - build everything for tvOS
-# - watchOS         - build everything for watchOS
-# - visionOS        - build everything for visionOS
-# - BZip2           - build BZip2 for all platforms
-# - BZip2-iOS       - build BZip2 for iOS
-# - BZip2-tvOS      - build BZip2 for tvOS
-# - BZip2-watchOS   - build BZip2 for watchOS
-# - BZip2-visionOS  - build BZip2 for visionOS
-# - XZ              - build XZ for all platforms
-# - XZ-iOS          - build XZ for iOS
-# - XZ-tvOS         - build XZ for tvOS
-# - XZ-watchOS      - build XZ for watchOS
-# - XZ-xrOS         - build XZ for xrOS
-# - OpenSSL         - build OpenSSL for all platforms
-# - OpenSSL-iOS     - build OpenSSL for iOS
-# - OpenSSL-tvOS    - build OpenSSL for tvOS
-# - OpenSSL-watchOS - build OpenSSL for watchOS
-# - OpenSSL-visionOS- build OpenSSL for visionOS
-# - mpdecimal         - build mpdecimal for all platforms
-# - mpdecimal-iOS     - build mpdecimal for iOS
-# - mpdecimal-tvOS    - build mpdecimal for tvOS
-# - mpdecimal-watchOS - build mpdecimal for watchOS
-# - mpdecimal-visionOS- build mpdecimal for visionOS
-# - libFFI-iOS      - build libFFI for iOS
-# - libFFI-tvOS     - build libFFI for tvOS
-# - libFFI-watchOS  - build libFFI for watchOS
-# - libFFI-visionOS - build libFFI for visionOS
+# - all                - build everything
+# - iOS                - build everything for iOS
+# - tvOS               - build everything for tvOS
+# - watchOS            - build everything for watchOS
+# - visionOS           - build everything for visionOS
+# - BZip2              - build BZip2 for all platforms
+# - BZip2-iOS          - build BZip2 for iOS
+# - BZip2-tvOS         - build BZip2 for tvOS
+# - BZip2-watchOS      - build BZip2 for watchOS
+# - BZip2-visionOS     - build BZip2 for visionOS
+# - XZ                 - build XZ for all platforms
+# - XZ-iOS             - build XZ for iOS
+# - XZ-tvOS            - build XZ for tvOS
+# - XZ-watchOS         - build XZ for watchOS
+# - XZ-visionOS        - build XZ for xrOS
+# - OpenSSL            - build OpenSSL for all platforms
+# - OpenSSL-iOS        - build OpenSSL for iOS
+# - OpenSSL-tvOS       - build OpenSSL for tvOS
+# - OpenSSL-watchOS    - build OpenSSL for watchOS
+# - OpenSSL-visionOS   - build OpenSSL for visionOS
+# - mpdecimal          - build mpdecimal for all platforms
+# - mpdecimal-iOS      - build mpdecimal for iOS
+# - mpdecimal-tvOS     - build mpdecimal for tvOS
+# - mpdecimal-watchOS  - build mpdecimal for watchOS
+# - mpdecimal-visionOS - build mpdecimal for visionOS
+# - libFFI-iOS         - build libFFI for iOS
+# - libFFI-tvOS        - build libFFI for tvOS
+# - libFFI-watchOS     - build libFFI for watchOS
+# - libFFI-visionOS    - build libFFI for visionOS
 
 # Current directory
 PROJECT_DIR=$(shell pwd)
@@ -64,26 +64,33 @@ CURL_FLAGS=--disable --fail --location --create-dirs --progress-bar
 
 # iOS targets
 TARGETS-iOS=iphonesimulator.x86_64 iphonesimulator.arm64 iphoneos.arm64
+TRIPLE_OS-iOS=ios
 VERSION_MIN-iOS=13.0
 CFLAGS-iOS=-mios-version-min=$(VERSION_MIN-iOS)
 
 # tvOS targets
 TARGETS-tvOS=appletvsimulator.x86_64 appletvsimulator.arm64 appletvos.arm64
+TRIPLE_OS-tvOS=tvos
 VERSION_MIN-tvOS=9.0
 CFLAGS-tvOS=-mtvos-version-min=$(VERSION_MIN-tvOS)
 PYTHON_CONFIGURE-tvOS=ac_cv_func_sigaltstack=no
 
 # watchOS targets
 TARGETS-watchOS=watchsimulator.x86_64 watchsimulator.arm64 watchos.arm64_32
+TRIPLE_OS-watchOS=watchos
 VERSION_MIN-watchOS=4.0
 CFLAGS-watchOS=-mwatchos-version-min=$(VERSION_MIN-watchOS)
 PYTHON_CONFIGURE-watchOS=ac_cv_func_sigaltstack=no
 
 # visionOS targets
 TARGETS-visionOS=xrsimulator.arm64 xros.arm64
+TRIPLE_OS-visionOS=xros
 VERSION_MIN-visionOS=2.0
-# Apple made lives harder by NOT having a -version-min flag
-PYTHON_CONFIGURE-xrOS=ac_cv_func_sigaltstack=no
+# visionOS doesn't expose -mxros-version-min or similar; it uses the version
+# number in the -target triple, or a definition like:
+# CFLAGS-visionOS=-arch arm64 -mtargetos=xros$(VERSION_MIN-visionOS)
+# For consistency with existing tooling, we use the -target form.
+PYTHON_CONFIGURE-visionOS=ac_cv_func_sigaltstack=no
 
 # The architecture of the machine doing the build
 HOST_ARCH=$(shell uname -m)
@@ -177,16 +184,14 @@ define build-target
 target=$1
 os=$2
 
-OS_LOWER-$(target)=$(shell echo $(os) | tr '[:upper:]' '[:lower:]')
-
 # $(target) can be broken up into is composed of $(SDK).$(ARCH)
 SDK-$(target)=$$(basename $(target))
 ARCH-$(target)=$$(subst .,,$$(suffix $(target)))
 
 ifeq ($$(findstring simulator,$$(SDK-$(target))),)
-TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))$$(VERSION_MIN-$(os))
+TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(TRIPLE_OS-$(os))$$(VERSION_MIN-$(os))
 else
-TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))$$(VERSION_MIN-$(os))-simulator
+TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(TRIPLE_OS-$(os))$$(VERSION_MIN-$(os))-simulator
 endif
 
 SDK_ROOT-$(target)=$$(shell xcrun --sdk $$(SDK-$(target)) --show-sdk-path)
@@ -505,8 +510,6 @@ sdk=$1
 os=$2
 
 OS_LOWER-$(sdk)=$(shell echo $(os) | tr '[:upper:]' '[:lower:]')
-
-WHEEL_TAG-$(sdk)=py3-none-$$(shell echo $$(OS_LOWER-$(sdk))_$$(VERSION_MIN-$(os))_$(sdk) | sed "s/\./_/g")
 
 SDK_TARGETS-$(sdk)=$$(filter $(sdk).%,$$(TARGETS-$(os)))
 SDK_ARCHES-$(sdk)=$$(sort $$(subst .,,$$(suffix $$(SDK_TARGETS-$(sdk)))))
