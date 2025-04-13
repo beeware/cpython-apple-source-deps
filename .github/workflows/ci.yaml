@@ -20,7 +20,7 @@ jobs:
     runs-on: macOS-latest
     strategy:
       matrix:
-        target: [ "iOS", "tvOS", "watchOS" ]
+        target: [ "iOS", "tvOS", "watchOS","xrOS" ]
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
