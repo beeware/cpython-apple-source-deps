@@ -4,12 +4,12 @@
 # - iOS             - build everything for iOS
 # - tvOS            - build everything for tvOS
 # - watchOS         - build everything for watchOS
-# - xrOS            - build everything for xrOS
+# - visionOS        - build everything for visionOS
 # - BZip2           - build BZip2 for all platforms
 # - BZip2-iOS       - build BZip2 for iOS
 # - BZip2-tvOS      - build BZip2 for tvOS
 # - BZip2-watchOS   - build BZip2 for watchOS
-# - BZip2-xrOS      - build BZip2 for xrOS
+# - BZip2-visionOS  - build BZip2 for visionOS
 # - XZ              - build XZ for all platforms
 # - XZ-iOS          - build XZ for iOS
 # - XZ-tvOS         - build XZ for tvOS
@@ -19,23 +19,23 @@
 # - OpenSSL-iOS     - build OpenSSL for iOS
 # - OpenSSL-tvOS    - build OpenSSL for tvOS
 # - OpenSSL-watchOS - build OpenSSL for watchOS
-# - OpenSSL-xrOS    - build OpenSSL for xrOS
+# - OpenSSL-visionOS- build OpenSSL for visionOS
 # - mpdecimal         - build mpdecimal for all platforms
 # - mpdecimal-iOS     - build mpdecimal for iOS
 # - mpdecimal-tvOS    - build mpdecimal for tvOS
 # - mpdecimal-watchOS - build mpdecimal for watchOS
-# - mpdecimal-xrOS    - build mpdecimal for xrOS
+# - mpdecimal-visionOS- build mpdecimal for visionOS
 # - libFFI-iOS      - build libFFI for iOS
 # - libFFI-tvOS     - build libFFI for tvOS
 # - libFFI-watchOS  - build libFFI for watchOS
-# - libFFI-xrOS     - build libFFI for xrOS
+# - libFFI-visionOS - build libFFI for visionOS
 
 # Current directory
 PROJECT_DIR=$(shell pwd)
 
 # Supported OS and products
 PRODUCTS=BZip2 XZ OpenSSL libFFI
-OS_LIST=iOS tvOS watchOS xrOS
+OS_LIST=iOS tvOS watchOS visionOS
 
 # The versions to compile by default.
 # In practice, these should be
@@ -79,10 +79,10 @@ VERSION_MIN-watchOS=4.0
 CFLAGS-watchOS=-mwatchos-version-min=$(VERSION_MIN-watchOS)
 PYTHON_CONFIGURE-watchOS=ac_cv_func_sigaltstack=no
 
-# xrOS targets
-TARGETS-xrOS=xrsimulator.arm64 xros.arm64
-VERSION_MIN-xrOS=2.0
-# I don't know the version-min flag for xros, seems to work fine without it
+# visionOS targets
+TARGETS-visionOS=xrsimulator.arm64 xros.arm64
+VERSION_MIN-visionOS=2.0
+# Apple made lives harder by NOT having a -version-min flag
 PYTHON_CONFIGURE-xrOS=ac_cv_func_sigaltstack=no
 
 # The architecture of the machine doing the build
