@@ -81,7 +81,7 @@ PYTHON_CONFIGURE-watchOS=ac_cv_func_sigaltstack=no
 
 # xrOS targets
 TARGETS-xrOS=xrsimulator.arm64 xros.arm64
-VERSION_MIN-xrOS=4.0
+VERSION_MIN-xrOS=2.0
 # I don't know the version-min flag for xros, seems to work fine without it
 PYTHON_CONFIGURE-xrOS=ac_cv_func_sigaltstack=no
 
