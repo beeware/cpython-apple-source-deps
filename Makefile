@@ -445,7 +445,7 @@ $$(LIBFFI_LIB-$(target)): $$(LIBFFI_BUILD_LIB-$(target))
 	# Copy the set of platform headers
 	cp -f -r $$(LIBFFI_SRCDIR-$(os))/darwin_common/include \
 		$$(LIBFFI_INSTALL-$(target))
-	cp -f -r $$(LIBFFI_SRCDIR-$(os))/darwin_$$(OS_LOWER-$(sdk))/include/* \
+	cp -f -r $$(LIBFFI_SRCDIR-$(os))/darwin_$$(TRIPLE_OS-$(os))/include/* \
 		$$(LIBFFI_INSTALL-$(target))/include
 
 $$(LIBFFI_DIST-$(target)): $$(LIBFFI_LIB-$(target))
@@ -508,8 +508,6 @@ endef # build-target
 define build-sdk
 sdk=$1
 os=$2
-
-OS_LOWER-$(sdk)=$(shell echo $(os) | tr '[:upper:]' '[:lower:]')
 
 SDK_TARGETS-$(sdk)=$$(filter $(sdk).%,$$(TARGETS-$(os)))
 SDK_ARCHES-$(sdk)=$$(sort $$(subst .,,$$(suffix $$(SDK_TARGETS-$(sdk)))))
