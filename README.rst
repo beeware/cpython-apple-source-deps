@@ -16,7 +16,7 @@ SDK target and architecture that is requried. The compiled library is packed
 into a tarball for distribution in "installed" form - that is, the contents of
 the ``include`` and ``lib`` folders are included.
 
-The binaries support arm64 for iOS, appleTV, and visionOS devices, and arm64_32
+The binaries support arm64 for iOS, appleTV and visionOS devices, and arm64_32
 for watchOS. They also supports device simulators on both x86_64 and arm64
 hardware, except that visionOS is officially unsupported by Apple on x86_64.
 This should enable the code to run on:
