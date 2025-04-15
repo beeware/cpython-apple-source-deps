@@ -1,7 +1,7 @@
 CPython Apple source dependencies
 =================================
 
-A meta-package for building the binary packages for iOS, tvOS and watchOS, and
+A meta-package for building the binary packages for iOS, tvOS, watchOS, and
 visionOS that a CPython build requires. This includes:
 
 * BZip2
@@ -17,8 +17,8 @@ into a tarball for distribution in "installed" form - that is, the contents of
 the ``include`` and ``lib`` folders are included.
 
 The binaries support arm64 for iOS, appleTV, and visionOS devices, and arm64_32
-for watchOS. They also supports device simulators on both x86_64 and M1 hardware,
-except for visionOS on x86_64 which is officially unsupported by Apple.
+for watchOS. They also supports device simulators on both x86_64 and arm64
+hardware, except that visionOS is officially unsupported by Apple on x86_64.
 This should enable the code to run on:
 
 * iOS 13.0 or later, on:
@@ -33,7 +33,7 @@ This should enable the code to run on:
 * watchOS 4.0 or later, on:
     * Apple Watch (4th gen or later)
 * visionOS 2.0 or later, on:
-    * Apple Vision Pro
+    * Apple Vision Pro (all models)
 
 Quickstart
 ----------
