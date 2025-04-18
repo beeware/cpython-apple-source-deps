@@ -102,7 +102,7 @@ VERSION_MIN-visionOS=2.0
 # CFLAGS-visionOS=-arch arm64 -mtargetos=xros$(VERSION_MIN-visionOS)
 # For consistency with existing tooling, we use the -target form.
 PYTHON_CONFIGURE-visionOS=ac_cv_func_sigaltstack=no
-LIBFFI_HEADER_DIR-visionOS=visionos
+LIBFFI_HEADER_DIR-visionOS=xros
 
 # watchOS targets
 TARGETS-watchOS=watchsimulator.x86_64 watchsimulator.arm64 watchos.arm64_32
