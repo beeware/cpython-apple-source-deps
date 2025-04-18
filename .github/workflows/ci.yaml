@@ -19,6 +19,7 @@ jobs:
     name: ${{ matrix.target }}
     runs-on: macOS-latest
     strategy:
+      fail-fast: false
       matrix:
         target: [ "iOS", "MacCatalyst", "tvOS", "visionOS", "watchOS" ]
     steps:

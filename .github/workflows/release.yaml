@@ -15,6 +15,7 @@ jobs:
       PACKAGE_VERSION: ${{ steps.build-vars.outputs.PACKAGE_VERSION }}
       BUILD_NUMBER: ${{ steps.build-vars.outputs.BUILD_NUMBER }}
     strategy:
+      fail-fast: false
       matrix:
         target: [ "iOS", "MacCatalyst", "tvOS", "visionOS", "watchOS" ]
     steps:
