@@ -19,8 +19,9 @@ jobs:
     name: ${{ matrix.target }}
     runs-on: macOS-latest
     strategy:
+      fail-fast: false
       matrix:
-        target: [ "iOS", "tvOS", "watchOS", "visionOS" ]
+        target: [ "iOS", "MacCatalyst", "tvOS", "visionOS", "watchOS" ]
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
