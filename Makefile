@@ -1,41 +1,46 @@
 #
 # Useful targets:
-# - all                - build everything
-# - iOS                - build everything for iOS
-# - tvOS               - build everything for tvOS
-# - watchOS            - build everything for watchOS
-# - visionOS           - build everything for visionOS
-# - BZip2              - build BZip2 for all platforms
-# - BZip2-iOS          - build BZip2 for iOS
-# - BZip2-tvOS         - build BZip2 for tvOS
-# - BZip2-watchOS      - build BZip2 for watchOS
-# - BZip2-visionOS     - build BZip2 for visionOS
-# - XZ                 - build XZ for all platforms
-# - XZ-iOS             - build XZ for iOS
-# - XZ-tvOS            - build XZ for tvOS
-# - XZ-watchOS         - build XZ for watchOS
-# - XZ-visionOS        - build XZ for xrOS
-# - OpenSSL            - build OpenSSL for all platforms
-# - OpenSSL-iOS        - build OpenSSL for iOS
-# - OpenSSL-tvOS       - build OpenSSL for tvOS
-# - OpenSSL-watchOS    - build OpenSSL for watchOS
-# - OpenSSL-visionOS   - build OpenSSL for visionOS
-# - mpdecimal          - build mpdecimal for all platforms
-# - mpdecimal-iOS      - build mpdecimal for iOS
-# - mpdecimal-tvOS     - build mpdecimal for tvOS
-# - mpdecimal-watchOS  - build mpdecimal for watchOS
-# - mpdecimal-visionOS - build mpdecimal for visionOS
-# - libFFI-iOS         - build libFFI for iOS
-# - libFFI-tvOS        - build libFFI for tvOS
-# - libFFI-watchOS     - build libFFI for watchOS
-# - libFFI-visionOS    - build libFFI for visionOS
+# - all                   - build everything
+# - iOS                   - build everything for iOS
+# - tvOS                  - build everything for tvOS
+# - watchOS               - build everything for watchOS
+# - visionOS              - build everything for visionOS
+# - BZip2                 - build BZip2 for all platforms
+# - BZip2-iOS             - build BZip2 for iOS
+# - BZip2-MacCatalyst     - build BZip2 for MacCatalyst
+# - BZip2-tvOS            - build BZip2 for tvOS
+# - BZip2-watchOS         - build BZip2 for watchOS
+# - BZip2-visionOS        - build BZip2 for visionOS
+# - XZ                    - build XZ for all platforms
+# - XZ-iOS                - build XZ for iOS
+# - XZ-MacCatalyst        - build XZ for MacCatalyst
+# - XZ-tvOS               - build XZ for tvOS
+# - XZ-watchOS            - build XZ for watchOS
+# - XZ-visionOS           - build XZ for xrOS
+# - OpenSSL               - build OpenSSL for all platforms
+# - OpenSSL-iOS           - build OpenSSL for iOS
+# - OpenSSL-MacCatalyst   - build OpenSSL for MacCatalyst
+# - OpenSSL-tvOS          - build OpenSSL for tvOS
+# - OpenSSL-watchOS       - build OpenSSL for watchOS
+# - OpenSSL-visionOS      - build OpenSSL for visionOS
+# - mpdecimal             - build mpdecimal for all platforms
+# - mpdecimal-iOS         - build mpdecimal for iOS
+# - mpdecimal-MacCatalyst - build mpdecimal for MacCatalyst
+# - mpdecimal-tvOS        - build mpdecimal for tvOS
+# - mpdecimal-watchOS     - build mpdecimal for watchOS
+# - mpdecimal-visionOS    - build mpdecimal for visionOS
+# - libFFI-iOS            - build libFFI for iOS
+# - libFFI-MacCatalyst    - build libFFI for MacCatalyst
+# - libFFI-tvOS           - build libFFI for tvOS
+# - libFFI-watchOS        - build libFFI for watchOS
+# - libFFI-visionOS       - build libFFI for visionOS
 
 # Current directory
 PROJECT_DIR=$(shell pwd)
 
 # Supported OS and products
 PRODUCTS=BZip2 XZ OpenSSL libFFI
-OS_LIST=iOS tvOS watchOS visionOS
+OS_LIST=iOS MacCatalyst tvOS watchOS visionOS
 
 # The versions to compile by default.
 # In practice, these should be
@@ -65,32 +70,48 @@ CURL_FLAGS=--disable --fail --location --create-dirs --progress-bar
 # iOS targets
 TARGETS-iOS=iphonesimulator.x86_64 iphonesimulator.arm64 iphoneos.arm64
 TRIPLE_OS-iOS=ios
+TRIPLE_SUFFIX-iphonesimulator=-simulator
 VERSION_MIN-iOS=13.0
 CFLAGS-iOS=-mios-version-min=$(VERSION_MIN-iOS)
+LIBFFI_HEADER_DIR-iOS=ios
+
+# MacCatalyst targets
+TARGETS-MacCatalyst=macabi.x86_64 macabi.arm64
+TRIPLE_OS-MacCatalyst=ios
+TRIPLE_SUFFIX-macabi=-macabi
+VERSION_MIN-MacCatalyst=14.2
+CFLAGS-MacCatalyst=-mios-version-min=$(VERSION_MIN-MacCatalyst)
+LIBFFI_HEADER_DIR-MacCatalyst=macabi
 
 # tvOS targets
 TARGETS-tvOS=appletvsimulator.x86_64 appletvsimulator.arm64 appletvos.arm64
 TRIPLE_OS-tvOS=tvos
+TRIPLE_SUFFIX-appletvsimulator=-simulator
 VERSION_MIN-tvOS=9.0
 CFLAGS-tvOS=-mtvos-version-min=$(VERSION_MIN-tvOS)
 PYTHON_CONFIGURE-tvOS=ac_cv_func_sigaltstack=no
-
-# watchOS targets
-TARGETS-watchOS=watchsimulator.x86_64 watchsimulator.arm64 watchos.arm64_32
-TRIPLE_OS-watchOS=watchos
-VERSION_MIN-watchOS=4.0
-CFLAGS-watchOS=-mwatchos-version-min=$(VERSION_MIN-watchOS)
-PYTHON_CONFIGURE-watchOS=ac_cv_func_sigaltstack=no
+LIBFFI_HEADER_DIR-tvOS=tvos
 
 # visionOS targets
 TARGETS-visionOS=xrsimulator.arm64 xros.arm64
 TRIPLE_OS-visionOS=xros
+TRIPLE_SUFFIX-xrsimulator=-simulator
 VERSION_MIN-visionOS=2.0
 # visionOS doesn't expose -mxros-version-min or similar; it uses the version
 # number in the -target triple, or a definition like:
 # CFLAGS-visionOS=-arch arm64 -mtargetos=xros$(VERSION_MIN-visionOS)
 # For consistency with existing tooling, we use the -target form.
 PYTHON_CONFIGURE-visionOS=ac_cv_func_sigaltstack=no
+LIBFFI_HEADER_DIR-visionOS=xros
+
+# watchOS targets
+TARGETS-watchOS=watchsimulator.x86_64 watchsimulator.arm64 watchos.arm64_32
+TRIPLE_OS-watchOS=watchos
+TRIPLE_SUFFIX-watchsimulator=-simulator
+VERSION_MIN-watchOS=4.0
+CFLAGS-watchOS=-mwatchos-version-min=$(VERSION_MIN-watchOS)
+PYTHON_CONFIGURE-watchOS=ac_cv_func_sigaltstack=no
+LIBFFI_HEADER_DIR-watchOS=watchos
 
 # The architecture of the machine doing the build
 HOST_ARCH=$(shell uname -m)
@@ -184,15 +205,12 @@ define build-target
 target=$1
 os=$2
 
-# $(target) can be broken up into is composed of $(SDK).$(ARCH)
-SDK-$(target)=$$(basename $(target))
+# $(target) can be broken up into is composed of $(ABI).$(ARCH)
+ABI-$(target)=$$(basename $(target))
+SDK-$(target)=$$(subst macabi,macosx,$$(basename $(target)))
 ARCH-$(target)=$$(subst .,,$$(suffix $(target)))
 
-ifeq ($$(findstring simulator,$$(SDK-$(target))),)
-TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(TRIPLE_OS-$(os))$$(VERSION_MIN-$(os))
-else
-TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(TRIPLE_OS-$(os))$$(VERSION_MIN-$(os))-simulator
-endif
+TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(TRIPLE_OS-$(os))$$(VERSION_MIN-$(os))$$(TRIPLE_SUFFIX-$$(ABI-$(target)))
 
 SDK_ROOT-$(target)=$$(shell xcrun --sdk $$(SDK-$(target)) --show-sdk-path)
 CC-$(target)=xcrun --sdk $$(SDK-$(target)) clang -target $$(TARGET_TRIPLE-$(target))
@@ -425,7 +443,7 @@ mpdecimal-$(target): $$(MPDECIMAL_DIST-$(target))
 # The configure step is performed as part of the OS-level build.
 
 LIBFFI_SRCDIR-$(os)=build/$(os)/libffi-$(LIBFFI_VERSION)
-LIBFFI_SRCDIR-$(target)=$$(LIBFFI_SRCDIR-$(os))/build_$$(SDK-$(target))-$$(ARCH-$(target))
+LIBFFI_SRCDIR-$(target)=$$(LIBFFI_SRCDIR-$(os))/build_$$(ABI-$(target))-$$(ARCH-$(target))
 LIBFFI_BUILD_LIB-$(target)=$$(LIBFFI_SRCDIR-$(target))/.libs/libffi.a
 LIBFFI_INSTALL-$(target)=$(PROJECT_DIR)/install/$(os)/$(target)/libffi-$(LIBFFI_VERSION)
 LIBFFI_LIB-$(target)=$$(LIBFFI_INSTALL-$(target))/lib/libffi.a
@@ -445,7 +463,7 @@ $$(LIBFFI_LIB-$(target)): $$(LIBFFI_BUILD_LIB-$(target))
 	# Copy the set of platform headers
 	cp -f -r $$(LIBFFI_SRCDIR-$(os))/darwin_common/include \
 		$$(LIBFFI_INSTALL-$(target))
-	cp -f -r $$(LIBFFI_SRCDIR-$(os))/darwin_$$(TRIPLE_OS-$(os))/include/* \
+	cp -f -r $$(LIBFFI_SRCDIR-$(os))/darwin_$$(LIBFFI_HEADER_DIR-$(os))/include/* \
 		$$(LIBFFI_INSTALL-$(target))/include
 
 $$(LIBFFI_DIST-$(target)): $$(LIBFFI_LIB-$(target))
@@ -464,6 +482,7 @@ libFFI-$(target): $$(LIBFFI_DIST-$(target))
 .PHONY: vars-$(target)
 vars-$(target):
 	@echo ">>> Environment variables for $(target)"
+	@echo "ABI-$(target): $$(ABI-$(target))"
 	@echo "SDK-$(target): $$(SDK-$(target))"
 	@echo "ARCH-$(target): $$(ARCH-$(target))"
 	@echo "TARGET_TRIPLE-$(target): $$(TARGET_TRIPLE-$(target))"

@@ -1,39 +1,69 @@
-diff -ur libffi-3.4.7 2/config.sub libffi-3.4.7/config.sub
---- libffi-3.4.7 2/config.sub	2024-12-13 04:38:19
-+++ libffi-3.4.7/config.sub	2025-04-12 17:44:40
+diff -ru libffi-3.4.7-orig/config.sub libffi-3.4.7/config.sub
+--- libffi-3.4.7-orig/config.sub	2024-12-13 18:38:19
++++ libffi-3.4.7/config.sub	2025-04-18 13:12:04
 @@ -1742,7 +1742,7 @@
  	     | hpux* | unos* | osf* | luna* | dgux* | auroraux* | solaris* \
  	     | sym* |  plan9* | psp* | sim* | xray* | os68k* | v88r* \
  	     | hiux* | abug | nacl* | netware* | windows* \
 -	     | os9* | macos* | osx* | ios* | tvos* | watchos* \
-+	     | os9* | macos* | osx* | ios* | tvos* | watchos* | xros* \
++	     | os9* | macos* | macabi | osx* | ios* | tvos* | watchos* | xros* \
  	     | mpw* | magic* | mmixware* | mon960* | lnews* \
  	     | amigaos* | amigados* | msdos* | newsos* | unicos* | aof* \
  	     | aos* | aros* | cloudabi* | sortix* | twizzler* \
-@@ -1864,7 +1864,7 @@
+@@ -1864,8 +1864,8 @@
  		;;
  	os2-emx-)
  		;;
 -	ios*-simulator* | tvos*-simulator* | watchos*-simulator*)
-+	ios*-simulator* | tvos*-simulator* | watchos*-simulator* | xros*-simulator*)
- 		;;	
+-		;;	
++	ios*-simulator* | ios*-macabi* | tvos*-simulator* | watchos*-simulator* | xros*-simulator*)
++		;;
  	*-eabi*- | *-gnueabi*-)
  		;;
-diff -ur libffi-3.4.7 2/generate-darwin-source-and-headers.py libffi-3.4.7/generate-darwin-source-and-headers.py
---- libffi-3.4.7 2/generate-darwin-source-and-headers.py	2024-06-01 12:42:02
-+++ libffi-3.4.7/generate-darwin-source-and-headers.py	2025-04-12 18:02:51
-@@ -152,8 +152,22 @@
-     sdk = 'watchos'
-     arch = 'arm64_32'
+ 	none--*)
+diff -ru libffi-3.4.7-orig/generate-darwin-source-and-headers.py libffi-3.4.7/generate-darwin-source-and-headers.py
+--- libffi-3.4.7-orig/generate-darwin-source-and-headers.py	2024-06-02 01:42:02
++++ libffi-3.4.7/generate-darwin-source-and-headers.py	2025-04-18 13:06:46
+@@ -10,7 +10,6 @@
+ class Platform(object):
+     pass
+ 
+-
+ class i386_platform(Platform):
+     arch = 'i386'
+ 
+@@ -96,6 +95,20 @@
+     version_min = '-mmacosx-version-min=11.0'
+ 
+ 
++class maccatalyst_x86_64_platform(x86_64_platform):
++    target = 'x86_64-apple-ios-macabi'
++    directory = 'darwin_macabi'
++    sdk = 'macosx'
++    version_min = '-mios-version-min=14.2'
++
++
++class maccatalyst_arm64_platform(arm64_platform):
++    target = 'arm64-apple-ios-macabi'
++    directory = 'darwin_macabi'
++    sdk = 'macosx'
++    version_min = '-mios-version-min=14.2'
++
++
+ class tvos_simulator_x86_64_platform(x86_64_platform):
+     target = 'x86_64-apple-tvos-simulator'
+     directory = 'darwin_tvos'
+@@ -154,6 +167,21 @@
      version_min = '-mwatchos-version-min=4.0'
-+    
+ 
+ 
 +class visionos_simulator_arm64_platform(arm64_platform):
 +    target = 'arm64-apple-xros2.0-simulator'
 +    directory = 'darwin_xros'
 +    sdk = 'xrsimulator'
 +    version_min = ''
- 
- 
++
++
 +class visionos_device_arm64_platform(arm64_platform):
 +    target = 'arm64-apple-xros2.0'
 +    directory = 'darwin_xros'
@@ -45,17 +75,65 @@ diff -ur libffi-3.4.7 2/generate-darwin-source-and-headers.py libffi-3.4.7/gener
  def mkdir_p(path):
      try:
          os.makedirs(path)
-@@ -243,6 +257,7 @@
+@@ -205,7 +233,8 @@
+     def xcrun_cmd(cmd):
+         return 'xcrun -sdk %s %s -target %s' % (platform.sdk, cmd, platform.target)
+ 
+-    tag='%s-%s' % (platform.sdk, platform.arch)
++    abi = "macabi" if platform.target.endswith("-macabi") else platform.sdk
++    tag='%s-%s' % (abi, platform.arch)
+     build_dir = 'build_%s' % tag
+     mkdir_p(build_dir)
+     env = dict(CC=xcrun_cmd('clang'),
+@@ -219,7 +248,7 @@
+                 "../configure",
+                 f"--host={platform.target}",
+             ] + (
+-                [] if platform.sdk == "macosx" else [f"--build={os.uname().machine}-apple-darwin"]
++                [] if abi == "macosx" else [f"--build={os.uname().machine}-apple-darwin"]
+             ),
+             env=env
+         )
+@@ -240,19 +269,26 @@
+ 
+ def generate_source_and_headers(
+     generate_osx=True,
++    generate_maccatalyst=True,
      generate_ios=True,
      generate_tvos=True,
      generate_watchos=True,
-+    generate_visionos=True
++    generate_visionos=True,
++    enable_32bit=False,
  ):
      copy_files('src', 'darwin_common/src', pattern='*.c')
      copy_files('include', 'darwin_common/include', pattern='*.h')
-@@ -266,6 +281,9 @@
+ 
+     if generate_ios:
+-        copy_src_platform_files(ios_simulator_i386_platform)
++        if enable_32bit:
++            copy_src_platform_files(ios_simulator_i386_platform)
++            copy_src_platform_files(ios_device_armv7_platform)
+         copy_src_platform_files(ios_simulator_x86_64_platform)
+         copy_src_platform_files(ios_simulator_arm64_platform)
+-        copy_src_platform_files(ios_device_armv7_platform)
+         copy_src_platform_files(ios_device_arm64_platform)
++    if generate_maccatalyst:
++        copy_src_platform_files(maccatalyst_x86_64_platform)
++        copy_src_platform_files(maccatalyst_arm64_platform)
+     if generate_osx:
+         copy_src_platform_files(desktop_x86_64_platform)
+         copy_src_platform_files(desktop_arm64_platform)
+@@ -261,20 +297,28 @@
+         copy_src_platform_files(tvos_simulator_arm64_platform)
+         copy_src_platform_files(tvos_device_arm64_platform)
+     if generate_watchos:
+-        copy_src_platform_files(watchos_simulator_i386_platform)
++        if enable_32bit:
++            copy_src_platform_files(watchos_simulator_i386_platform)
++            copy_src_platform_files(watchos_device_armv7k_platform)
+         copy_src_platform_files(watchos_simulator_x86_64_platform)
          copy_src_platform_files(watchos_simulator_arm64_platform)
-         copy_src_platform_files(watchos_device_armv7k_platform)
+-        copy_src_platform_files(watchos_device_armv7k_platform)
          copy_src_platform_files(watchos_device_arm64_32_platform)
 +    if generate_visionos:
 +        copy_src_platform_files(visionos_simulator_arm64_platform)
@@ -63,9 +141,32 @@ diff -ur libffi-3.4.7 2/generate-darwin-source-and-headers.py libffi-3.4.7/gener
  
      platform_headers = collections.defaultdict(set)
  
-@@ -288,6 +306,9 @@
+     if generate_ios:
+-        build_target(ios_simulator_i386_platform, platform_headers)
++        if enable_32bit:
++            build_target(ios_simulator_i386_platform, platform_headers)
++            build_target(ios_device_armv7_platform, platform_headers)
+         build_target(ios_simulator_x86_64_platform, platform_headers)
+         build_target(ios_simulator_arm64_platform, platform_headers)
+-        build_target(ios_device_armv7_platform, platform_headers)
+         build_target(ios_device_arm64_platform, platform_headers)
++    if generate_maccatalyst:
++        build_target(maccatalyst_x86_64_platform, platform_headers)
++        build_target(maccatalyst_arm64_platform, platform_headers)
+     if generate_osx:
+         build_target(desktop_x86_64_platform, platform_headers)
+         build_target(desktop_arm64_platform, platform_headers)
+@@ -283,11 +327,15 @@
+         build_target(tvos_simulator_arm64_platform, platform_headers)
+         build_target(tvos_device_arm64_platform, platform_headers)
+     if generate_watchos:
+-        build_target(watchos_simulator_i386_platform, platform_headers)
++        if enable_32bit:
++            build_target(watchos_simulator_i386_platform, platform_headers)
++            build_target(watchos_device_armv7k_platform, platform_headers)
+         build_target(watchos_simulator_x86_64_platform, platform_headers)
          build_target(watchos_simulator_arm64_platform, platform_headers)
-         build_target(watchos_device_armv7k_platform, platform_headers)
+-        build_target(watchos_device_armv7k_platform, platform_headers)
          build_target(watchos_device_arm64_32_platform, platform_headers)
 +    if generate_visionos:
 +        build_target(visionos_simulator_arm64_platform, platform_headers)
@@ -73,11 +174,16 @@ diff -ur libffi-3.4.7 2/generate-darwin-source-and-headers.py libffi-3.4.7/gener
  
      mkdir_p('darwin_common/include')
      for header_name, tag_tuples in platform_headers.items():
-@@ -302,11 +323,13 @@
+@@ -299,14 +347,20 @@
+ if __name__ == '__main__':
+     parser = argparse.ArgumentParser()
+     parser.add_argument('--only-ios', action='store_true', default=False)
++    parser.add_argument('--only-maccatalyst', action='store_true', default=False)
      parser.add_argument('--only-osx', action='store_true', default=False)
      parser.add_argument('--only-tvos', action='store_true', default=False)
-     parser.add_argument('--only-watchos', action='store_true', default=False)
 +    parser.add_argument('--only-visionos', action='store_true', default=False)
+     parser.add_argument('--only-watchos', action='store_true', default=False)
++    parser.add_argument('--enable-32bit', action='store_true', default=False)
      args = parser.parse_args()
  
      generate_source_and_headers(
@@ -85,10 +191,11 @@ diff -ur libffi-3.4.7 2/generate-darwin-source-and-headers.py libffi-3.4.7/gener
 -        generate_ios=not args.only_osx and not args.only_tvos and not args.only_watchos,
 -        generate_tvos=not args.only_ios and not args.only_osx and not args.only_watchos,
 -        generate_watchos=not args.only_ios and not args.only_osx and not args.only_tvos,
-+        generate_osx=not args.only_ios and not args.only_tvos and not args.only_watchos and not args.only_visionos,
-+        generate_ios=not args.only_osx and not args.only_tvos and not args.only_watchos and not args.only_visionos,
-+        generate_tvos=not args.only_ios and not args.only_osx and not args.only_watchos and not args.only_visionos,
-+        generate_watchos=not args.only_ios and not args.only_osx and not args.only_tvos and not args.only_visionos,
-+        generate_visionos=not args.only_ios and not args.only_osx and not args.only_tvos and not args.only_watchos,
++        generate_osx=args.only_osx,
++        generate_maccatalyst=args.only_maccatalyst,
++        generate_ios=args.only_ios,
++        generate_tvos=args.only_tvos,
++        generate_watchos=args.only_watchos,
++        generate_visionos=args.only_visionos,
++        enable_32bit=args.enable_32bit,
      )
-

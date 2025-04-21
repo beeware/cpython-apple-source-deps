@@ -1,6 +1,6 @@
 diff -ur mpdecimal-4.0.0-orig/config.sub mpdecimal-4.0.0/config.sub
 --- mpdecimal-4.0.0-orig/config.sub	2024-01-10 08:25:00
-+++ mpdecimal-4.0.0/config.sub	2024-07-24 13:16:35
++++ mpdecimal-4.0.0/config.sub	2025-04-18 11:50:23
 @@ -1127,7 +1127,7 @@
  	xscale-* | xscalee[bl]-*)
  		cpu=`echo "$cpu" | sed 's/^xscale/arm/'`
@@ -10,17 +10,21 @@ diff -ur mpdecimal-4.0.0-orig/config.sub mpdecimal-4.0.0/config.sub
  		cpu=aarch64
  		;;
  
-@@ -1713,3 +1713,3 @@
+@@ -1710,7 +1710,7 @@
+ 	     | hpux* | unos* | osf* | luna* | dgux* | auroraux* | solaris* \
+ 	     | sym* |  plan9* | psp* | sim* | xray* | os68k* | v88r* \
  	     | hiux* | abug | nacl* | netware* | windows* \
 -	     | os9* | macos* | osx* | ios* | tvos* | watchos* \
-+	     | os9* | macos* | osx* | ios* | tvos* | watchos* | xros* \
++	     | os9* | macos* | macabi | osx* | ios* | tvos* | watchos* | xros* \
  	     | mpw* | magic* | mmixware* | mon960* | lnews* \
+ 	     | amigaos* | amigados* | msdos* | newsos* | unicos* | aof* \
+ 	     | aos* | aros* | cloudabi* | sortix* | twizzler* \
 @@ -1792,6 +1792,8 @@
  	os2-emx)
  		;;
  	*-eabi* | *-gnueabi*)
 +		;;
-+	ios*-simulator | tvos*-simulator | watchos*-simulator | xros*-simulator)
++	ios*-simulator | ios*-macabi | tvos*-simulator | watchos*-simulator | xros*-simulator)
  		;;
  	none-coff* | none-elf*)
  		# None (no kernel, i.e. freestanding / bare metal),
