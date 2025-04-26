@@ -28,6 +28,15 @@ This should enable the code to run on:
     * iPad Mini (2 or later)
     * iPad Pro (all models)
     * iPod Touch (7th gen or later)
+* Mac Catalyst 14.2 (macOS 11) or later, on:
+    * MacBook (2015 or later)
+    * MacBook Air (2013 or later)
+    * MacBook Pro (Late 2013 or later)
+    * Mac mini (2014 or later)
+    * iMac (2014 or later)
+    * iMac Pro (2017 or later)
+    * Mac Pro (2013 or later)
+    * Mac Studio
 * tvOS 9.0 or later, on:
     * Apple TV (4th gen or later)
 * watchOS 4.0 or later, on:
