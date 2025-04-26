@@ -28,7 +28,7 @@ This should enable the code to run on:
     * iPad Mini (2 or later)
     * iPad Pro (all models)
     * iPod Touch (7th gen or later)
-* Mac Catalyst 14.2 (macOS 11) or later, on:
+* macOS 11 or later, using **Mac Catalyst** (14.2 or later), on:
     * MacBook (2015 or later)
     * MacBook Air (2013 or later)
     * MacBook Pro (Late 2013 or later)
