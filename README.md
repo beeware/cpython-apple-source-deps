@@ -20,14 +20,14 @@ for watchOS. They also supports device simulators on both x86_64 and arm64
 hardware, except that visionOS is officially unsupported by Apple on x86_64.
 This should enable the code to run on:
 
-- iOS 13.0 or later, on:
+- **iOS 13.0 or later, on**:
   - iPhone (6s or later)
   - iPad (5th gen or later)
   - iPad Air (all models)
   - iPad Mini (2 or later)
   - iPad Pro (all models)
   - iPod Touch (7th gen or later)
-- macOS 11 or later, using Mac Catalyst (14.2 or later), on:
+- **macOS 11 or later, using Mac Catalyst (14.2 or later), on**:
   - MacBook (2015 or later)
   - MacBook Air (2013 or later)
   - MacBook Pro (Late 2013 or later)
@@ -36,11 +36,11 @@ This should enable the code to run on:
   - iMac Pro (2017 or later)
   - Mac Pro (2013 or later)
   - Mac Studio
-- tvOS 9.0 or later, on:
+- **tvOS 9.0 or later, on**:
   - Apple TV (4th gen or later)
-- watchOS 4.0 or later, on:
+- **watchOS 4.0 or later, on**:
   - Apple Watch (4th gen or later)
-- visionOS 2.0 or later, on:
+- **visionOS 2.0 or later, on**:
   - Apple Vision Pro (all models)
 
 ## Quickstart
