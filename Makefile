@@ -230,7 +230,8 @@ TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(TRIPLE_OS-$(os))$$(VERSION_M
 
 SDK_ROOT-$(target)=$$(shell xcrun --sdk $$(SDK-$(target)) --show-sdk-path)
 CC-$(target)=xcrun --sdk $$(SDK-$(target)) clang -target $$(TARGET_TRIPLE-$(target))
-CXX-$(target)=xcrun --sdk $$(SDK-$(target)) clang -target $$(TARGET_TRIPLE-$(target))
+AS-$(target)=xcrun --sdk $$(SDK-$(target)) as -target $$(TARGET_TRIPLE-$(target))
+CXX-$(target)=xcrun --sdk $$(SDK-$(target)) clang++ -target $$(TARGET_TRIPLE-$(target))
 CFLAGS-$(target)=\
 	--sysroot=$$(SDK_ROOT-$(target)) \
 	$$(CFLAGS-$(os))
@@ -473,6 +474,7 @@ $$(ZSTD_LIB-$(target)): $$(ZSTD_SRCDIR-$(target))/Makefile
 	cd $$(ZSTD_SRCDIR-$(target)) && \
 		PATH="$(PROJECT_DIR)/install/$(os)/bin:$(PATH)" \
 		CC="$$(CC-$(target))" \
+		AS="$$(AS-$(target))" \
 		CFLAGS="$$(CFLAGS-$(target))" \
 		LDFLAGS="$$(LDFLAGS-$(target))" \
 		make -C lib install-static install-includes PREFIX=$$(ZSTD_INSTALL-$(target)) \
@@ -539,6 +541,7 @@ vars-$(target):
 	@echo "TARGET_TRIPLE-$(target): $$(TARGET_TRIPLE-$(target))"
 	@echo "SDK_ROOT-$(target): $$(SDK_ROOT-$(target))"
 	@echo "CC-$(target): $$(CC-$(target))"
+	@echo "AS-$(target): $$(AS-$(target))"
 	@echo "CFLAGS-$(target): $$(CFLAGS-$(target))"
 	@echo "LDFLAGS-$(target): $$(LDFLAGS-$(target))"
 	@echo "BZIP2_SRCDIR-$(target): $$(BZIP2_SRCDIR-$(target))"
