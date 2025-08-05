@@ -477,7 +477,7 @@ $$(ZSTD_LIB-$(target)): $$(ZSTD_SRCDIR-$(target))/Makefile
 		AS="$$(AS-$(target))" \
 		CFLAGS="$$(CFLAGS-$(target))" \
 		LDFLAGS="$$(LDFLAGS-$(target))" \
-		make -C lib install-static install-includes PREFIX=$$(ZSTD_INSTALL-$(target)) \
+		make V=1 -C lib install-static install-includes PREFIX=$$(ZSTD_INSTALL-$(target)) \
  			2>&1 | tee -a ../zstd-$(ZSTD_VERSION).build.log
 
 $$(ZSTD_DIST-$(target)): $$(ZSTD_LIB-$(target))
