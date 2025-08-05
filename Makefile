@@ -29,6 +29,11 @@
 # - mpdecimal-tvOS        - build mpdecimal for tvOS
 # - mpdecimal-watchOS     - build mpdecimal for watchOS
 # - mpdecimal-visionOS    - build mpdecimal for visionOS
+# - zstd-iOS              - build zstd for iOS
+# - zstd-MacCatalyst      - build zstd for MacCatalyst
+# - zstd-tvOS             - build zstd for tvOS
+# - zstd-watchOS          - build zstd for watchOS
+# - zstd-visionOS         - build zstd for visionOS
 # - libFFI-iOS            - build libFFI for iOS
 # - libFFI-MacCatalyst    - build libFFI for MacCatalyst
 # - libFFI-tvOS           - build libFFI for tvOS
@@ -62,6 +67,8 @@ OPENSSL_VERSION=3.0.16
 OPENSSL_SERIES=$(shell echo $(OPENSSL_VERSION) | grep -Eo "\d+\.\d+")
 
 MPDECIMAL_VERSION=4.0.0
+
+ZSTD_VERSION=1.5.7
 
 LIBFFI_VERSION=3.4.7
 
@@ -181,6 +188,15 @@ downloads/mpdecimal-$(MPDECIMAL_VERSION).tar.gz:
 	curl $(CURL_FLAGS) -o $@ \
 		https://www.bytereef.org/software/mpdecimal/releases/mpdecimal-$(MPDECIMAL_VERSION).tar.gz
 
+###########################################################################
+# Setup: zstd
+###########################################################################
+
+# Download original zstd source code archive.
+downloads/zstd-$(ZSTD_VERSION).tar.gz:
+	@echo ">>> Download zstd sources"
+	curl $(CURL_FLAGS) -o $@ \
+		https://github.com/facebook/zstd/releases/download/v$(ZSTD_VERSION)/zstd-$(ZSTD_VERSION).tar.gz
 
 ###########################################################################
 # Setup: libFFI
@@ -214,7 +230,8 @@ TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(TRIPLE_OS-$(os))$$(VERSION_M
 
 SDK_ROOT-$(target)=$$(shell xcrun --sdk $$(SDK-$(target)) --show-sdk-path)
 CC-$(target)=xcrun --sdk $$(SDK-$(target)) clang -target $$(TARGET_TRIPLE-$(target))
-CXX-$(target)=xcrun --sdk $$(SDK-$(target)) clang -target $$(TARGET_TRIPLE-$(target))
+AS-$(target)=xcrun --sdk $$(SDK-$(target)) as -target $$(TARGET_TRIPLE-$(target))
+CXX-$(target)=xcrun --sdk $$(SDK-$(target)) clang++ -target $$(TARGET_TRIPLE-$(target))
 CFLAGS-$(target)=\
 	--sysroot=$$(SDK_ROOT-$(target)) \
 	$$(CFLAGS-$(os))
@@ -418,14 +435,14 @@ $$(MPDECIMAL_SRCDIR-$(target))/Makefile: $$(MPDECIMAL_SRCDIR-$(target))/configur
 			--host=$$(TARGET_TRIPLE-$(target)) \
 			--build=$(HOST_ARCH)-apple-darwin \
 			--prefix="$$(MPDECIMAL_INSTALL-$(target))" \
-			2>&1 | tee -a ../xz-$(MPDECIMAL_VERSION).config.log
+			2>&1 | tee -a ../mpdecimal-$(MPDECIMAL_VERSION).config.log
 
 $$(MPDECIMAL_LIB-$(target)): $$(MPDECIMAL_SRCDIR-$(target))/Makefile
-	@echo ">>> Build and install MPDECIMAL for $(target)"
+	@echo ">>> Build and install mpdecimal for $(target)"
 	cd $$(MPDECIMAL_SRCDIR-$(target)) && \
 		PATH="$(PROJECT_DIR)/install/$(os)/bin:$(PATH)" \
 		make install \
-			2>&1 | tee -a ../xz-$(MPDECIMAL_VERSION).build.log
+			2>&1 | tee -a ../mpdecimal-$(MPDECIMAL_VERSION).build.log
 
 $$(MPDECIMAL_DIST-$(target)): $$(MPDECIMAL_LIB-$(target))
 	@echo ">>> Build MPDECIMAL distribution for $(target)"
@@ -435,6 +452,42 @@ $$(MPDECIMAL_DIST-$(target)): $$(MPDECIMAL_LIB-$(target))
 
 .PHONY: mpdecimal-$(target)
 mpdecimal-$(target): $$(MPDECIMAL_DIST-$(target))
+
+###########################################################################
+# Target: zstd
+###########################################################################
+
+ZSTD_SRCDIR-$(target)=build/$(os)/$(target)/zstd-$(ZSTD_VERSION)
+ZSTD_INSTALL-$(target)=$(PROJECT_DIR)/install/$(os)/$(target)/zstd-$(ZSTD_VERSION)
+ZSTD_LIB-$(target)=$$(ZSTD_INSTALL-$(target))/lib/libzstd.a
+ZSTD_DIST-$(target)=dist/zstd-$(ZSTD_VERSION)-$(BUILD_NUMBER)-$(target).tar.gz
+
+$$(ZSTD_SRCDIR-$(target))/Makefile: downloads/zstd-$(ZSTD_VERSION).tar.gz
+	@echo ">>> Unpack zstd sources for $(target)"
+	mkdir -p $$(ZSTD_SRCDIR-$(target))
+	tar zxf $$< --strip-components 1 -C $$(ZSTD_SRCDIR-$(target))
+	# Touch the Makefile script to ensure that Make identifies it as up to date.
+	touch $$(ZSTD_SRCDIR-$(target))/Makefile
+
+$$(ZSTD_LIB-$(target)): $$(ZSTD_SRCDIR-$(target))/Makefile
+	@echo ">>> Build and install zstd for $(target)"
+	cd $$(ZSTD_SRCDIR-$(target)) && \
+		PATH="$(PROJECT_DIR)/install/$(os)/bin:$(PATH)" \
+		CC="$$(CC-$(target))" \
+		AS="$$(AS-$(target))" \
+		CFLAGS="$$(CFLAGS-$(target))" \
+		LDFLAGS="$$(LDFLAGS-$(target))" \
+		make -C lib install-static install-includes PREFIX=$$(ZSTD_INSTALL-$(target)) \
+ 			2>&1 | tee -a ../zstd-$(ZSTD_VERSION).build.log
+
+$$(ZSTD_DIST-$(target)): $$(ZSTD_LIB-$(target))
+	@echo ">>> Build zstd distribution for $(target)"
+	mkdir -p dist
+
+	cd $$(ZSTD_INSTALL-$(target)) && tar zcvf $(PROJECT_DIR)/$$(ZSTD_DIST-$(target)) lib include
+
+.PHONY: zstd-$(target)
+zstd-$(target): $$(ZSTD_DIST-$(target))
 
 ###########################################################################
 # Target: libFFI
@@ -488,6 +541,7 @@ vars-$(target):
 	@echo "TARGET_TRIPLE-$(target): $$(TARGET_TRIPLE-$(target))"
 	@echo "SDK_ROOT-$(target): $$(SDK_ROOT-$(target))"
 	@echo "CC-$(target): $$(CC-$(target))"
+	@echo "AS-$(target): $$(AS-$(target))"
 	@echo "CFLAGS-$(target): $$(CFLAGS-$(target))"
 	@echo "LDFLAGS-$(target): $$(LDFLAGS-$(target))"
 	@echo "BZIP2_SRCDIR-$(target): $$(BZIP2_SRCDIR-$(target))"
@@ -543,6 +597,7 @@ BZip2-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),BZip2-$$(target))
 XZ-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),XZ-$$(target))
 OpenSSL-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),OpenSSL-$$(target))
 mpdecimal-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),mpdecimal-$$(target))
+zstd-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),zstd-$$(target))
 libFFI-$(sdk): $$(foreach target,$$(SDK_TARGETS-$(sdk)),libFFI-$$(target))
 
 ###########################################################################
@@ -597,9 +652,10 @@ BZip2-$(os): $$(foreach sdk,$$(SDKS-$(os)),BZip2-$$(sdk))
 XZ-$(os): $$(foreach sdk,$$(SDKS-$(os)),XZ-$$(sdk))
 OpenSSL-$(os): $$(foreach sdk,$$(SDKS-$(os)),OpenSSL-$$(sdk))
 mpdecimal-$(os): $$(foreach sdk,$$(SDKS-$(os)),mpdecimal-$$(sdk))
+zstd-$(os): $$(foreach sdk,$$(SDKS-$(os)),zstd-$$(sdk))
 libFFI-$(os): $$(foreach sdk,$$(SDKS-$(os)),libFFI-$$(sdk))
 
-.PHONY: clean-BZip2-$(os) clean-XZ-$(os) clean-OpenSSL-$(os) clean-mpdecimal-$(os) clean-libFFI-$(os)
+.PHONY: clean-BZip2-$(os) clean-XZ-$(os) clean-OpenSSL-$(os) clean-mpdecimal-$(os) clean-zstd-$(os) clean-libFFI-$(os)
 clean-BZip2-$(os):
 	@echo ">>> Clean BZip2 build products on $(os)"
 	rm -rf \
@@ -636,6 +692,15 @@ clean-mpdecimal-$(os):
 		install/$(os)/*/mpdecimal-$(MPDECIMAL_VERSION).*.log \
 		dist/mpdecimal-$(MPDECIMAL_VERSION)-*
 
+clean-zstd-$(os):
+	@echo ">>> Clean zstd build products on $(os)"
+	rm -rf \
+		build/$(os)/*/zstd-$(ZSTD_VERSION) \
+		build/$(os)/*/zstd-$(ZSTD_VERSION).*.log \
+		install/$(os)/*/zstd-$(ZSTD_VERSION) \
+		install/$(os)/*/zstd-$(ZSTD_VERSION).*.log \
+		dist/zstd-$(ZSTD_VERSION)-*
+
 clean-libFFI-$(os):
 	@echo ">>> Clean libFFI build products on $(os)"
 	rm -rf \
@@ -646,7 +711,7 @@ clean-libFFI-$(os):
 		dist/libffi-$(LIBFFI_VERSION)-*
 
 .PHONY: $(os)
-$(os): BZip2-$(os) XZ-$(os) OpenSSL-$(os) mpdecimal-$(os) libFFI-$(os)
+$(os): BZip2-$(os) XZ-$(os) OpenSSL-$(os) mpdecimal-$(os) zstd-$(os) libFFI-$(os)
 
 ###########################################################################
 # Build: Debug
@@ -666,17 +731,19 @@ endef # build
 vars: $(foreach os,$(OS_LIST),vars-$(os))
 
 # Expand the targets for each product
-.PHONY: BZip2 XZ OpenSSL mpdecimal libFFI
+.PHONY: BZip2 XZ OpenSSL mpdecimal zstd libFFI
 BZip2: $(foreach os,$(OS_LIST),BZip2-$(os))
 XZ: $(foreach os,$(OS_LIST),XZ-$(os))
 OpenSSL: $(foreach os,$(OS_LIST),OpenSSL-$(os))
 mpdecimal: $(foreach os,$(OS_LIST),mpdecimal-$(os))
+zstd: $(foreach os,$(OS_LIST),zstd-$(os))
 libFFI: $(foreach os,$(OS_LIST),libFFI-$(os))
 
 clean-BZip2: $(foreach os,$(OS_LIST),clean-BZip2-$(os))
 clean-XZ: $(foreach os,$(OS_LIST),clean-XZ-$(os))
 clean-OpenSSL: $(foreach os,$(OS_LIST),clean-OpenSSL-$(os))
 clean-mpdecimal: $(foreach os,$(OS_LIST),clean-mpdecimal-$(os))
+clean-zstd: $(foreach os,$(OS_LIST),clean-zstd-$(os))
 clean-libFFI: $(foreach os,$(OS_LIST),clean-libFFI-$(os))
 
 # Expand the build macro for every OS
