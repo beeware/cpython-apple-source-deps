@@ -47,6 +47,10 @@ jobs:
         run: |
           make mpdecimal-${{ matrix.target }}
 
+      - name: Build zstd for ${{ matrix.target }}
+        run: |
+          make zstd-${{ matrix.target }}
+
       - name: Build OpenSSL for ${{ matrix.target }}
         run: |
           make OpenSSL-${{ matrix.target }}
