@@ -733,7 +733,7 @@ BZip2: $(foreach os,$(OS_LIST),BZip2-$(os))
 XZ: $(foreach os,$(OS_LIST),XZ-$(os))
 OpenSSL: $(foreach os,$(OS_LIST),OpenSSL-$(os))
 mpdecimal: $(foreach os,$(OS_LIST),mpdecimal-$(os))
-ztstandard: $(foreach os,$(OS_LIST),ztstandard-$(os))
+zstd: $(foreach os,$(OS_LIST),zstd-$(os))
 libFFI: $(foreach os,$(OS_LIST),libFFI-$(os))
 
 clean-BZip2: $(foreach os,$(OS_LIST),clean-BZip2-$(os))
