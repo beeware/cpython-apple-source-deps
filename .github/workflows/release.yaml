@@ -68,7 +68,7 @@ jobs:
         merge-multiple: true
 
     - name: Create Release
-      uses: ncipollo/release-action@v1.18.0
+      uses: ncipollo/release-action@v1.20.0
       with:
         name: ${{ needs.build.outputs.PACKAGE_NAME }} v${{ needs.build.outputs.PACKAGE_VERSION }} (build ${{ needs.build.outputs.BUILD_NUMBER }})
         draft: true
