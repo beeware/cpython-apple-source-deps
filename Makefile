@@ -61,7 +61,7 @@ XZ_VERSION=5.6.4
 # Preference is to use OpenSSL 3; however, Cryptography 3.4.8 (and
 # probably some other packages as well) only works with 1.1.1, so
 # we need to preserve the ability to build the older OpenSSL (for now...)
-OPENSSL_VERSION=3.0.16
+OPENSSL_VERSION=3.0.17
 # OPENSSL_VERSION=1.1.1w
 # The Series is the first 2 digits of the version number. (e.g., 1.1.1w -> 1.1)
 OPENSSL_SERIES=$(shell echo $(OPENSSL_VERSION) | grep -Eo "\d+\.\d+")
@@ -331,6 +331,7 @@ XZ-$(target): $$(XZ_DIST-$(target))
 OPENSSL_SRCDIR-$(target)=build/$(os)/$(target)/openssl-$(OPENSSL_VERSION)
 OPENSSL_INSTALL-$(target)=$(PROJECT_DIR)/install/$(os)/$(target)/openssl-$(OPENSSL_VERSION)
 OPENSSL_SSL_LIB-$(target)=$$(OPENSSL_INSTALL-$(target))/lib/libssl.a
+OPENSSL_SSL_XCPRIVACY-$(target)=$$(OPENSSL_INSTALL-$(target))/share/PrivacyInfo.xcprivacy
 OPENSSL_DIST-$(target)=dist/openssl-$(OPENSSL_VERSION)-$(BUILD_NUMBER)-$(target).tar.gz
 
 $$(OPENSSL_SRCDIR-$(target))/Configure: downloads/openssl-$(OPENSSL_VERSION).tar.gz
@@ -394,11 +395,19 @@ $$(OPENSSL_SSL_LIB-$(target)): $$(OPENSSL_SRCDIR-$(target))/libssl.a
 		make install_sw \
 			2>&1 | tee -a ../openssl-$(OPENSSL_VERSION).install.log
 
-$$(OPENSSL_DIST-$(target)): $$(OPENSSL_SSL_LIB-$(target))
+$$(OPENSSL_SSL_XCPRIVACY-$(target)): $$(OPENSSL_SRCDIR-$(target))/libssl.a
+	@echo ">>> Install xcprivacy file for $(target)"
+	mkdir -p $$(OPENSSL_INSTALL-$(target))/share
+	cp $$(OPENSSL_SRCDIR-$(target))/os-dep/Apple/PrivacyInfo.xcprivacy $$(OPENSSL_INSTALL-$(target))/share
+
+$$(OPENSSL_DIST-$(target)): $$(OPENSSL_SSL_LIB-$(target)) $$(OPENSSL_SSL_XCPRIVACY-$(target))
 	@echo ">>> Build OpenSSL distribution for $(target)"
 	mkdir -p dist
 
-	cd $$(OPENSSL_INSTALL-$(target)) && tar zcvf $(PROJECT_DIR)/$$(OPENSSL_DIST-$(target)) lib include
+	cd $$(OPENSSL_INSTALL-$(target)) && \
+		tar zcvf $(PROJECT_DIR)/$$(OPENSSL_DIST-$(target)) \
+			-X $(PROJECT_DIR)/patch/dylib-exclude.txt \
+			lib include share
 
 .PHONY: OpenSSL-$(target)
 OpenSSL-$(target): $$(OPENSSL_DIST-$(target))
