@@ -70,7 +70,7 @@ MPDECIMAL_VERSION=4.0.0
 
 ZSTD_VERSION=1.5.7
 
-LIBFFI_VERSION=3.4.7
+LIBFFI_VERSION=3.5.2
 
 CURL_FLAGS=--disable --fail --location --create-dirs --progress-bar
 
